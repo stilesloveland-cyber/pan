@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单网盘</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>简单网盘</h1>
+            
+            <!-- 文件上传区域 -->
+            <div class="upload-section">
+                <h2>上传文件</h2>
+                <input type="file" @change="handleFileChange" multiple>
+                <button @click="uploadFiles" :disabled="!selectedFiles.length">上传</button>
+            </div>
+            
+            <!-- 文件列表区域 -->
+            <div class="file-list-section">
+                <h2>文件列表</h2>
+                <div v-if="files.length === 0" class="empty-message">暂无文件</div>
+                <ul v-else class="file-list">
+                    <li v-for="file in files" :key="file.name" class="file-item">
+                        <span class="file-name">{{ file.name }}</span>
+                        <span class="file-size">{{ formatSize(file.size) }}</span>
+                        <button @click="downloadFile(file.name)" class="download-btn">下载</button>
+                        <button @click="deleteFile(file.name)" class="delete-btn">删除</button>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- 消息提示 -->
+            <div v-if="message" :class="['message', message.type]">{{ message.text }}</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

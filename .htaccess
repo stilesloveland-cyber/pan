@@ -1,8 +1,0 @@
-# 防止目录浏览
-Options -Indexes
-
-# 禁止直接访问上传目录
-<Directory "uploads">
-    Order deny,allow
-    Deny from all
-</Directory>
