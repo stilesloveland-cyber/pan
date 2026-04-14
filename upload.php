@@ -180,6 +180,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
         mkdir($publicDir, 0755, true);
     }
     
+    $userDir = $baseUploadDir . md5($password) . '/';
     if (!file_exists($userDir)) {
         mkdir($userDir, 0755, true);
     }
