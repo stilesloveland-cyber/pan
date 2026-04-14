@@ -210,11 +210,16 @@ function handleChangePassword(event) {
 
 // 初始化上传区域
 function initUploadArea() {
+    console.log('initUploadArea called');
     const uploadArea = document.getElementById('upload-area');
     const fileInput = document.getElementById('file-input');
     
+    console.log('uploadArea:', uploadArea);
+    console.log('fileInput:', fileInput);
+    
     // 点击上传
     uploadArea.addEventListener('click', () => {
+        console.log('uploadArea clicked');
         fileInput.click();
     });
     
@@ -262,6 +267,9 @@ let uploadTasks = [];
 
 // 上传文件
 function uploadFiles(files, isPublic = false) {
+    console.log('uploadFiles called with', files.length, 'files, isPublic:', isPublic);
+    console.log('currentPassword:', currentPassword);
+    
     const progressBar = document.getElementById('progress-bar');
     const progressFill = document.getElementById('progress-fill');
     
