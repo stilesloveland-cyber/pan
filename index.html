@@ -5,6 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>百度网盘</title>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4a90e2',
+                        secondary: '#6c757d',
+                        success: '#2ecc71',
+                        danger: '#e74c3c',
+                        warning: '#f39c12',
+                        info: '#3498db',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .transition-all-300 {
+                transition: all 300ms ease-in-out;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+        }
+    </style>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -15,45 +53,57 @@
     </div>
 
     <!-- 登录界面 -->
-    <div id="login-container" class="login-container">
-        <h1><i class="fas fa-cloud-upload-alt"></i> 网盘登录</h1>
-        <form class="login-form" onsubmit="handleLogin(event)">
-            <div class="form-group">
-                <label for="login-password">密码</label>
-                <input type="password" id="login-password" required>
+    <div id="login-container" class="fixed inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900 transition-all duration-300 z-50">
+        <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg transition-all duration-300 transform hover:shadow-xl">
+            <h1 class="text-3xl font-bold text-center text-primary mb-8 flex items-center justify-center gap-3">
+                <i class="fas fa-cloud-upload-alt text-4xl"></i>
+                <span>网盘登录</span>
+            </h1>
+            <form class="space-y-6" onsubmit="handleLogin(event)">
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">密码</label>
+                    <input type="password" id="login-password" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white transition-all">
+                </div>
+                <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>登录</span>
+                </button>
+            </form>
+            <div class="mt-6 text-center">
+                <span class="text-gray-600 dark:text-gray-400">还没有账号？</span>
+                <button onclick="showRegisterModal()" class="ml-2 text-primary hover:underline font-medium">
+                    注册
+                </button>
             </div>
-            <button type="submit" class="btn" style="width: 100%; padding: 12px;">
-                <i class="fas fa-sign-in-alt"></i> 登录
-            </button>
-        </form>
-        <div style="margin-top: 20px; text-align: center;">
-            <span>还没有账号？</span>
-            <button class="btn btn-outline" onclick="showRegisterModal()" style="width: 100%; margin-top: 10px;">
-                <i class="fas fa-user-plus"></i> 注册
-            </button>
         </div>
     </div>
 
     <!-- 注册弹窗 -->
-    <div id="register-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>注册账号</h2>
-                <button class="modal-close" onclick="closeRegisterModal()">&times;</button>
+    <div id="register-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">注册账号</h2>
+                <button onclick="closeRegisterModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            <div class="modal-body">
+            <div class="space-y-4">
                 <form onsubmit="handleRegister(event)">
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="register-password">密码</label>
-                        <input type="password" id="register-password" required style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius);">
+                    <div>
+                        <label for="register-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">密码</label>
+                        <input type="password" id="register-password" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white transition-all">
                     </div>
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="confirm-password">确认密码</label>
-                        <input type="password" id="confirm-password" required style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius);">
+                    <div>
+                        <label for="confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">确认密码</label>
+                        <input type="password" id="confirm-password" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white transition-all">
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeRegisterModal()">取消</button>
-                        <button type="submit" class="btn">注册</button>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" onclick="closeRegisterModal()" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            取消
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            注册
+                        </button>
                     </div>
                 </form>
             </div>
@@ -61,155 +111,206 @@
     </div>
 
     <!-- 主界面 -->
-    <div id="main-container" class="container" style="display: none;">
-        <div class="main-layout">
-            <!-- 侧边栏 -->
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <h3>文件分区</h3>
-                    <ul class="sidebar-menu">
-                        <li><a href="#" class="active" data-view="personal"><i class="fas fa-folder"></i> 私人空间</a></li>
-                        <li><a href="#" data-view="public"><i class="fas fa-users"></i> 公共空间</a></li>
-                    </ul>
-                </div>
-                <div class="sidebar-section">
-                    <h3>使用情况</h3>
-                    <div class="space-info-card">
-                        <div class="space-info-item">
-                            <div class="space-info-header">
-                                <span class="space-info-label">私人空间</span>
-                                <span class="space-info-value" id="personal-space-value">0 MB / 2 GB</span>
-                            </div>
-                            <div class="space-bar">
-                                <div id="personal-space-fill" class="space-fill personal" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div class="space-info-item">
-                            <div class="space-info-header">
-                                <span class="space-info-label">公共空间</span>
-                                <span class="space-info-value" id="public-space-value">0 MB / 5 GB</span>
-                            </div>
-                            <div class="space-bar">
-                                <div id="public-space-fill" class="space-fill public" style="width: 0%"></div>
+    <div id="main-container" class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors" style="display: none;">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- 侧边栏 -->
+                <div class="lg:w-64 shrink-0">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-all duration-300">
+                        <div class="mb-6">
+                            <h2 class="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>网盘</span>
+                            </h2>
+                            <div class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>用户</span>
+                                    <span id="user-id" class="font-medium">欢迎您</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>角色</span>
+                                    <span id="admin-badge" class="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full hidden">管理员</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="space-info-item">
-                            <div class="space-info-header">
-                                <span class="space-info-label">全局空间</span>
-                                <span class="space-info-value" id="global-space-value">0 MB / 10 GB</span>
+                        <div class="space-y-2">
+                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">文件分区</h3>
+                            <ul class="space-y-1">
+                                <li>
+                                    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-medium transition-colors" data-view="personal">
+                                        <i class="fas fa-folder"></i>
+                                        <span>私人空间</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-view="public">
+                                        <i class="fas fa-users"></i>
+                                        <span>公共空间</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-6 space-y-2">
+                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">设置</h3>
+                            <ul class="space-y-1">
+                                <li>
+                                    <a href="#" onclick="showChangePassword()" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                        <i class="fas fa-key"></i>
+                                        <span>修改密码</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" onclick="showLogin()" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        <span>切换用户</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="mt-6">
+                            <div class="space-y-2">
+                                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">空间使用</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span>个人空间</span>
+                                            <span id="personal-space-value" class="font-medium">0 MB / 2 GB</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                            <div id="personal-space-fill" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span>公共空间</span>
+                                            <span id="public-space-value" class="font-medium">0 MB / 5 GB</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                            <div id="public-space-fill" class="bg-warning h-2.5 rounded-full" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span>全局空间</span>
+                                            <span id="global-space-value" class="font-medium">0 MB / 10 GB</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                            <div id="global-space-fill" class="bg-success h-2.5 rounded-full" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="space-bar">
-                                <div id="global-space-fill" class="space-fill global" style="width: 0%"></div>
-                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 主内容区 -->
-            <div class="main-content">
-                <!-- 顶部操作栏 -->
-                <div class="top-bar">
-                    <div class="top-bar-left">
-                        <h1><i class="fas fa-cloud-upload-alt"></i> 网盘</h1>
-                        <span class="user-info">
-                            <i class="fas fa-user"></i>
-                            <span id="user-id">欢迎您</span>
-                            <span id="admin-badge" class="admin-badge" style="display: none;">管理员</span>
-                        </span>
-                    </div>
-                    <div class="top-bar-right">
-                        <button class="btn btn-secondary" onclick="showChangePassword()">
-                            <i class="fas fa-key"></i> 修改密码
-                        </button>
-                        <button class="btn btn-secondary" onclick="showLogin()">
-                            <i class="fas fa-sign-out-alt"></i> 切换用户
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 工具栏 -->
-                <div class="toolbar">
-                    <div class="toolbar-left">
-                        <div class="view-toggle">
-                            <button class="active" data-view="list"><i class="fas fa-list"></i> 列表</button>
-                            <button data-view="grid"><i class="fas fa-th-large"></i> 图标</button>
-                        </div>
-                        <select id="sort-select" class="sort-select" onchange="sortFiles()">
-                            <option value="date-desc">按时间排序（最新优先）</option>
-                            <option value="date-asc">按时间排序（最早优先）</option>
-                            <option value="size-desc">按大小排序（从大到小）</option>
-                            <option value="size-asc">按大小排序（从小到大）</option>
-                            <option value="name-asc">按名称排序（A-Z）</option>
-                            <option value="name-desc">按名称排序（Z-A）</option>
-                        </select>
-                    </div>
-                    <div class="toolbar-right">
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="search-input" placeholder="搜索文件..." onkeyup="searchFiles()">
-                        </div>
-                        <button class="btn" onclick="document.getElementById('file-input').click()">
-                            <i class="fas fa-upload"></i> 上传文件
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 上传区域 -->
-                <div class="upload-area" id="upload-area">
-                    <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                    <h2 class="upload-text">拖拽文件到此处或点击上传</h2>
-                    <p class="upload-subtext">支持所有文件类型</p>
-                    <input type="file" id="file-input" multiple>
-                    <div class="upload-options">
-                        <button class="btn" onclick="document.getElementById('file-input').click()">
-                            <i class="fas fa-folder-open"></i> 选择文件
-                        </button>
-                        <button class="btn btn-outline" onclick="uploadToPublic()">
-                            <i class="fas fa-users"></i> 上传到公共空间
-                        </button>
-                    </div>
-                    <div class="progress-bar" id="progress-bar">
-                        <div class="progress-fill" id="progress-fill"></div>
                     </div>
                 </div>
-
-                <!-- 文件列表区域 -->
-                <div class="files-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-folder-open"></i> <span id="section-title">个人文件</span></h2>
-                        <div class="section-actions">
-                            <div class="file-type-filter">
-                                <button class="btn btn-sm filter-btn active" onclick="setFileTypeFilter('all')">全部</button>
-                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('image')">图片</button>
-                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('video')">视频</button>
-                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('document')">文档</button>
-                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('other')">其他</button>
+                
+                <!-- 主内容区 -->
+                <div class="flex-1">
+                    <!-- 工具栏 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 mb-6 transition-all duration-300">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="view-btn active px-3 py-1.5 rounded-lg bg-primary/10 text-primary transition-colors" data-view="list">
+                                        <i class="fas fa-list mr-1"></i> 列表
+                                    </button>
+                                    <button class="view-btn px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-view="grid">
+                                        <i class="fas fa-th-large mr-1"></i> 图标
+                                    </button>
+                                </div>
+                                <select id="sort-select" class="sort-select px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all" onchange="sortFiles()">
+                                    <option value="date-desc">按时间排序（最新优先）</option>
+                                    <option value="date-asc">按时间排序（最早优先）</option>
+                                    <option value="size-desc">按大小排序（从大到小）</option>
+                                    <option value="size-asc">按大小排序（从小到大）</option>
+                                    <option value="name-asc">按名称排序（A-Z）</option>
+                                    <option value="name-desc">按名称排序（Z-A）</option>
+                                </select>
                             </div>
-                            <button class="btn btn-sm" onclick="selectAllFiles()">
-                                <i class="fas fa-check-square"></i> 全选
-                            </button>
-                            <button class="btn btn-sm" onclick="batchMoveFiles()">
-                                <i class="fas fa-cut"></i> 移动
-                            </button>
-                            <button class="btn btn-sm" onclick="batchRenameFiles()">
-                                <i class="fas fa-edit"></i> 重命名
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()">
-                                <i class="fas fa-trash"></i> 删除
-                            </button>
-                            <button class="btn btn-sm" onclick="showRefreshSettings()">
-                                <i class="fas fa-sync"></i> 刷新
-                            </button>
+                            <div class="flex items-center gap-3">
+                                <div class="relative">
+                                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                    <input type="text" id="search-input" placeholder="搜索文件..." onkeyup="searchFiles()" class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                                </div>
+                                <button class="btn px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors" onclick="document.getElementById('file-input').click()">
+                                    <i class="fas fa-upload mr-2"></i> 上传文件
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="file-list-view" id="file-list-view">
-                        <ul id="file-list">
-                            <!-- 文件列表将通过JavaScript动态生成 -->
-                        </ul>
+                    
+                    <!-- 公告区域 -->
+                    <div id="announcement-container" class="mb-6"></div>
+                    
+                    <!-- 上传区域 -->
+                    <div class="upload-area mb-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 text-center transition-all duration-300" id="upload-area">
+                        <div class="upload-icon mb-4 text-5xl text-primary opacity-70">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h2 class="upload-text text-xl font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            拖拽文件到此处或点击上传
+                        </h2>
+                        <p class="upload-subtext text-sm text-gray-500 dark:text-gray-400 mb-6">
+                            支持所有文件类型
+                        </p>
+                        <div class="upload-options flex flex-wrap justify-center gap-3">
+                            <button class="btn px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
+                                <i class="fas fa-folder-open"></i>
+                                <span>选择文件</span>
+                            </button>
+                            <button class="btn px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2" onclick="uploadToPublic()">
+                                <i class="fas fa-users"></i>
+                                <span>上传到公共空间</span>
+                            </button>
+                        </div>
+                        <div class="progress-bar mt-6 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden" id="progress-bar" style="display: none;">
+                            <div class="progress-fill h-full bg-primary transition-all duration-300" id="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <input type="file" id="file-input" multiple style="display: none;">
                     </div>
-                    <div class="file-grid-view" id="file-grid-view" style="display: none;">
-                        <!-- 图标视图将通过JavaScript动态生成 -->
+                    
+                    <!-- 文件列表区域 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm transition-all duration-300">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                    <i class="fas fa-folder-open"></i>
+                                    <span id="section-title">个人文件</span>
+                                </h2>
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <div class="file-type-filter flex flex-wrap gap-2">
+                                        <button class="btn btn-sm filter-btn active px-3 py-1.5 rounded-lg bg-primary/10 text-primary transition-colors" onclick="setFileTypeFilter('all', event)">全部</button>
+                                        <button class="btn btn-sm filter-btn px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="setFileTypeFilter('image', event)">图片</button>
+                                        <button class="btn btn-sm filter-btn px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="setFileTypeFilter('video', event)">视频</button>
+                                        <button class="btn btn-sm filter-btn px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="setFileTypeFilter('document', event)">文档</button>
+                                        <button class="btn btn-sm filter-btn px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="setFileTypeFilter('other', event)">其他</button>
+                                    </div>
+                                    <button class="btn btn-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="selectAllFiles()">
+                                        <i class="fas fa-check-square mr-1"></i> 全选
+                                    </button>
+                                    <button class="btn btn-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="batchMoveFiles()">
+                                        <i class="fas fa-cut mr-1"></i> 移动
+                                    </button>
+                                    <button class="btn btn-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="batchRenameFiles()">
+                                        <i class="fas fa-edit mr-1"></i> 重命名
+                                    </button>
+                                    <button class="btn btn-sm px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" onclick="deleteSelectedFiles()">
+                                        <i class="fas fa-trash mr-1"></i> 删除
+                                    </button>
+                                    <button class="btn btn-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="showRefreshSettings()">
+                                        <i class="fas fa-sync mr-1"></i> 刷新
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="file-list-view" id="file-list-view">
+                            <ul id="file-list" class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- 文件列表将通过JavaScript动态生成 -->
+                            </ul>
+                        </div>
+                        <div class="file-grid-view" id="file-grid-view" style="display: none; padding: 1rem;">
+                            <!-- 图标视图将通过JavaScript动态生成 -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,25 +318,31 @@
     </div>
 
     <!-- 密码修改弹窗 -->
-    <div id="change-password-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>修改密码</h2>
-                <button class="modal-close" onclick="closeChangePassword()">&times;</button>
+    <div id="change-password-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">修改密码</h2>
+                <button onclick="closeChangePassword()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            <div class="modal-body">
+            <div class="space-y-4">
                 <form onsubmit="handleChangePassword(event)">
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="current-password">当前密码</label>
-                        <input type="password" id="current-password" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius);">
+                    <div>
+                        <label for="current-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">当前密码</label>
+                        <input type="password" id="current-password" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white transition-all">
                     </div>
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="new-password">新密码</label>
-                        <input type="password" id="new-password" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius);">
+                    <div>
+                        <label for="new-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">新密码</label>
+                        <input type="password" id="new-password" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-white transition-all">
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeChangePassword()">取消</button>
-                        <button type="submit" class="btn">确认修改</button>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" onclick="closeChangePassword()" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            取消
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            确认修改
+                        </button>
                     </div>
                 </form>
             </div>
@@ -243,14 +350,16 @@
     </div>
 
     <!-- 预览弹窗 -->
-    <div id="preview-modal" class="modal">
-        <div class="modal-content" style="width: 90%; max-width: 800px; max-height: 80vh; overflow: auto;">
-            <div class="modal-header">
-                <h2>文件预览</h2>
-                <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+    <div id="preview-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">文件预览</h2>
+                <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <div id="preview-content" style="width: 100%;">
+            <div class="flex-1 overflow-auto p-4">
+                <div id="preview-content" class="w-full">
                     <!-- 预览内容将通过JavaScript动态生成 -->
                 </div>
             </div>
@@ -258,32 +367,42 @@
     </div>
 
     <!-- 分享弹窗 -->
-    <div id="share-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>分享文件</h2>
-                <button class="modal-close" onclick="closeShareModal()">&times;</button>
+    <div id="share-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">分享文件</h2>
+                <button onclick="closeShareModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            <div class="modal-body">
+            <div class="space-y-4">
                 <form onsubmit="handleShareFile(event)">
                     <input type="hidden" id="share-file-name">
                     <input type="hidden" id="share-user-dir">
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="share-expiry">有效期</label>
-                        <select id="share-expiry" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius);">
+                    <div>
+                        <label for="share-expiry" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">有效期</label>
+                        <select id="share-expiry" required class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:text-gray-300 transition-all">
                             <option value="1">1天</option>
                             <option value="7">7天</option>
                             <option value="30">30天</option>
                         </select>
                     </div>
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label for="share-url">分享链接</label>
-                        <input type="text" id="share-url" readonly style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius);">
-                        <button type="button" class="btn btn-sm" onclick="copyShareUrl()" style="margin-top: 10px;">复制链接</button>
+                    <div>
+                        <label for="share-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">分享链接</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="share-url" readonly class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all">
+                            <button type="button" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors" onclick="copyShareUrl()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeShareModal()">取消</button>
-                        <button type="submit" class="btn">生成链接</button>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" onclick="closeShareModal()" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            取消
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            生成链接
+                        </button>
                     </div>
                 </form>
             </div>
@@ -291,19 +410,21 @@
     </div>
 
     <!-- 刷新设置弹窗 -->
-    <div id="refresh-modal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header">
-                <h2>自动刷新设置</h2>
-                <button class="modal-close" onclick="closeRefreshModal()">&times;</button>
+    <div id="refresh-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">自动刷新设置</h2>
+                <button onclick="closeRefreshModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 15px;">选择自动刷新间隔：</p>
-                <div class="form-group">
-                    <button class="btn" style="width: 100%; margin-bottom: 10px;" onclick="setAutoRefresh(10); closeRefreshModal();">10秒</button>
-                    <button class="btn" style="width: 100%; margin-bottom: 10px;" onclick="setAutoRefresh(30); closeRefreshModal();">30秒</button>
-                    <button class="btn" style="width: 100%; margin-bottom: 10px;" onclick="setAutoRefresh(60); closeRefreshModal();">60秒</button>
-                    <button class="btn btn-outline" style="width: 100%;" onclick="setAutoRefresh(0); closeRefreshModal();">关闭</button>
+            <div class="space-y-4">
+                <p class="text-gray-700 dark:text-gray-300">选择自动刷新间隔：</p>
+                <div class="space-y-3">
+                    <button class="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors" onclick="setAutoRefresh(10); closeRefreshModal();">10秒</button>
+                    <button class="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors" onclick="setAutoRefresh(30); closeRefreshModal();">30秒</button>
+                    <button class="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors" onclick="setAutoRefresh(60); closeRefreshModal();">60秒</button>
+                    <button class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick="setAutoRefresh(0); closeRefreshModal();">关闭</button>
                 </div>
             </div>
         </div>

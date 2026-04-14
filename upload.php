@@ -995,4 +995,293 @@ if (isset($_POST['action']) && $_POST['action'] === 'get_logs') {
     echo json_encode(['success' => true, 'logs' => $logs]);
     exit;
 }
+
+// 处理检查管理员权限
+if (isset($_POST['action']) && $_POST['action'] === 'checkAdmin') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    
+    $isAdmin = ($password === $adminPassword);
+    echo json_encode(['success' => true, 'isAdmin' => $isAdmin]);
+    exit;
+}
+
+// 处理获取用户列表
+if (isset($_POST['action']) && $_POST['action'] === 'getUsers') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    $users = getUsers();
+    $userList = [];
+    
+    foreach ($users as $userId => $user) {
+        $userDir = $baseUploadDir . md5($user['password']) . '/';
+        $spaceUsed = calculateDirectorySize($userDir);
+        $spaceQuota = $maxUserSize;
+        
+        $userList[] = [
+            'id' => $userId,
+            'role' => $user['role'],
+            'spaceUsed' => formatSize($spaceUsed),
+            'spaceQuota' => formatSize($spaceQuota)
+        ];
+    }
+    
+    echo json_encode(['success' => true, 'users' => $userList]);
+    exit;
+}
+
+// 处理获取空间信息
+if (isset($_POST['action']) && $_POST['action'] === 'getSpaceInfo') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    $globalUsed = calculateGlobalSize($baseUploadDir);
+    $globalTotal = $maxTotalSize;
+    $globalPercentage = ($globalTotal > 0) ? round(($globalUsed / $globalTotal) * 100, 2) : 0;
+    
+    $personalUsed = calculateDirectorySize($userDir);
+    $personalTotal = $maxUserSize;
+    $personalPercentage = ($personalTotal > 0) ? round(($personalUsed / $personalTotal) * 100, 2) : 0;
+    
+    echo json_encode([
+        'success' => true,
+        'global' => [
+            'used' => formatSize($globalUsed),
+            'total' => formatSize($globalTotal),
+            'percentage' => $globalPercentage
+        ],
+        'personal' => [
+            'used' => formatSize($personalUsed),
+            'total' => formatSize($personalTotal),
+            'percentage' => $personalPercentage,
+            'quota' => formatSize($maxUserSize)
+        ]
+    ]);
+    exit;
+}
+
+// 处理获取操作日志（管理后台）
+if (isset($_POST['action']) && $_POST['action'] === 'getLogs') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    $logs = getOperationLogs(100);
+    $formattedLogs = [];
+    
+    foreach ($logs as $log) {
+        $formattedLogs[] = [
+            'time' => $log['time'],
+            'user' => $log['user'],
+            'type' => $log['action'],
+            'details' => $log['filename'] . ' (' . $log['location'] . ')'
+        ];
+    }
+    
+    echo json_encode(['success' => true, 'logs' => $formattedLogs]);
+    exit;
+}
+
+// 处理获取公告
+if (isset($_POST['action']) && $_POST['action'] === 'getAnnouncements') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    $announcementsFile = $baseUploadDir . 'announcements.json';
+    $announcements = [];
+    
+    if (file_exists($announcementsFile)) {
+        $announcements = json_decode(file_get_contents($announcementsFile), true);
+    }
+    
+    echo json_encode(['success' => true, 'announcements' => $announcements]);
+    exit;
+}
+
+// 处理添加用户
+if (isset($_POST['action']) && $_POST['action'] === 'addUser') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $newPassword = isset($_POST['newPassword']) ? $_POST['newPassword'] : '';
+    $role = isset($_POST['role']) ? $_POST['role'] : 'user';
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    if (empty($newPassword)) {
+        echo json_encode(['success' => false, 'message' => '请输入密码']);
+        exit;
+    }
+    
+    $users = getUsers();
+    $passwordHash = md5($newPassword);
+    
+    // 检查是否已存在
+    foreach ($users as $user) {
+        if (isset($user['password']) && $user['password'] === $passwordHash) {
+            echo json_encode(['success' => false, 'message' => '该密码已被注册']);
+            exit;
+        }
+    }
+    
+    // 添加新用户
+    $users['user_' . uniqid()] = [
+        'password' => $passwordHash,
+        'registered' => time(),
+        'role' => $role
+    ];
+    
+    saveUsers($users);
+    
+    // 创建用户目录
+    $userDir = $baseUploadDir . $passwordHash . '/';
+    if (!file_exists($userDir)) {
+        mkdir($userDir, 0755, true);
+    }
+    
+    echo json_encode(['success' => true, 'message' => '用户添加成功']);
+    exit;
+}
+
+// 处理添加公告
+if (isset($_POST['action']) && $_POST['action'] === 'addAnnouncement') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $title = isset($_POST['title']) ? $_POST['title'] : '';
+    $content = isset($_POST['content']) ? $_POST['content'] : '';
+    $expiry = isset($_POST['expiry']) ? (int)$_POST['expiry'] : 7;
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    if (empty($title) || empty($content)) {
+        echo json_encode(['success' => false, 'message' => '请填写标题和内容']);
+        exit;
+    }
+    
+    $announcementsFile = $baseUploadDir . 'announcements.json';
+    $announcements = [];
+    
+    if (file_exists($announcementsFile)) {
+        $announcements = json_decode(file_get_contents($announcementsFile), true);
+    }
+    
+    $announcements[] = [
+        'id' => uniqid(),
+        'title' => $title,
+        'content' => $content,
+        'created' => date('Y-m-d H:i:s'),
+        'expiry' => $expiry
+    ];
+    
+    file_put_contents($announcementsFile, json_encode($announcements));
+    
+    echo json_encode(['success' => true, 'message' => '公告发布成功']);
+    exit;
+}
+
+// 处理删除用户
+if (isset($_POST['action']) && $_POST['action'] === 'deleteUser') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $userId = isset($_POST['userId']) ? $_POST['userId'] : '';
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    if (empty($userId)) {
+        echo json_encode(['success' => false, 'message' => '用户ID不能为空']);
+        exit;
+    }
+    
+    $users = getUsers();
+    
+    if (isset($users[$userId])) {
+        // 删除用户目录
+        $userDir = $baseUploadDir . md5($users[$userId]['password']) . '/';
+        if (file_exists($userDir)) {
+            // 递归删除目录
+            function deleteDirectory($dir) {
+                $files = array_diff(scandir($dir), array('.','..'));
+                foreach ($files as $file) {
+                    (is_dir("$dir/$file")) ? deleteDirectory("$dir/$file") : unlink("$dir/$file");
+                }
+                return rmdir($dir);
+            }
+            deleteDirectory($userDir);
+        }
+        
+        // 从用户列表中删除
+        unset($users[$userId]);
+        saveUsers($users);
+        
+        echo json_encode(['success' => true, 'message' => '用户删除成功']);
+    } else {
+        echo json_encode(['success' => false, 'message' => '用户不存在']);
+    }
+    exit;
+}
+
+// 处理删除公告
+if (isset($_POST['action']) && $_POST['action'] === 'deleteAnnouncement') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $announcementId = isset($_POST['announcementId']) ? $_POST['announcementId'] : '';
+    
+    if ($password !== $adminPassword) {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    if (empty($announcementId)) {
+        echo json_encode(['success' => false, 'message' => '公告ID不能为空']);
+        exit;
+    }
+    
+    $announcementsFile = $baseUploadDir . 'announcements.json';
+    $announcements = [];
+    
+    if (file_exists($announcementsFile)) {
+        $announcements = json_decode(file_get_contents($announcementsFile), true);
+    }
+    
+    $updatedAnnouncements = array_filter($announcements, function($announcement) use ($announcementId) {
+        return $announcement['id'] != $announcementId;
+    });
+    
+    file_put_contents($announcementsFile, json_encode(array_values($updatedAnnouncements)));
+    
+    echo json_encode(['success' => true, 'message' => '公告删除成功']);
+    exit;
+}
+
+// 格式化文件大小
+function formatSize($bytes) {
+    if ($bytes >= 1073741824) {
+        return round($bytes / 1073741824, 2) . ' GB';
+    } elseif ($bytes >= 1048576) {
+        return round($bytes / 1048576, 2) . ' MB';
+    } elseif ($bytes >= 1024) {
+        return round($bytes / 1024, 2) . ' KB';
+    } else {
+        return $bytes . ' B';
+    }
+}
 ?>

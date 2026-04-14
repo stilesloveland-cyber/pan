@@ -101,7 +101,7 @@ function handleLogin(event) {
     .then(data => {
         if (data.success) {
             currentPassword = password;
-            localStorage.setItem('password', password);
+            localStorage.setItem('currentPassword', password);
             isAdmin = (password === 'admin');
             
             // 管理员登录后跳转到后台
@@ -124,12 +124,12 @@ function handleLogin(event) {
 
 // 显示注册弹窗
 function showRegisterModal() {
-    document.getElementById('register-modal').classList.add('show');
+    document.getElementById('register-modal').style.display = 'flex';
 }
 
 // 关闭注册弹窗
 function closeRegisterModal() {
-    document.getElementById('register-modal').classList.remove('show');
+    document.getElementById('register-modal').style.display = 'none';
 }
 
 // 处理注册
@@ -179,16 +179,69 @@ function showMain() {
     mainContainer.style.display = 'block';
     userID.textContent = isAdmin ? '管理员' : '用户';
     adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
+    
+    // 加载公告
+    loadAnnouncements();
+}
+
+// 加载公告
+function loadAnnouncements() {
+    fetch('upload.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: 'getAnnouncements',
+            password: currentPassword
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayAnnouncements(data.announcements);
+        }
+    })
+    .catch(error => {
+        console.error('加载公告失败:', error);
+    });
+}
+
+// 显示公告
+function displayAnnouncements(announcements) {
+    const container = document.getElementById('announcement-container');
+    container.innerHTML = '';
+    
+    if (announcements && announcements.length > 0) {
+        const announcementCard = document.createElement('div');
+        announcementCard.className = 'bg-warning/10 border border-warning/20 rounded-xl p-4 transition-all duration-300';
+        announcementCard.innerHTML = `
+            <div class="flex items-start gap-3">
+                <div class="text-warning text-2xl">
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">${announcements[0].title}</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-3">${announcements[0].content}</p>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <span>发布时间: ${announcements[0].created}</span>
+                        ${announcements[0].expiry ? ` <span class="mx-2">•</span> <span>有效期: ${announcements[0].expiry}天</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(announcementCard);
+    }
 }
 
 // 显示修改密码弹窗
 function showChangePassword() {
-    document.getElementById('change-password-modal').classList.add('show');
+    document.getElementById('change-password-modal').style.display = 'flex';
 }
 
 // 关闭修改密码弹窗
 function closeChangePassword() {
-    document.getElementById('change-password-modal').classList.remove('show');
+    document.getElementById('change-password-modal').style.display = 'none';
 }
 
 // 处理密码修改
@@ -1580,14 +1633,14 @@ function setAutoRefresh(interval) {
 }
 
 function showRefreshSettings() {
-    document.getElementById('refresh-modal').classList.add('show');
+    document.getElementById('refresh-modal').style.display = 'flex';
 }
 
 function closeRefreshModal() {
-    document.getElementById('refresh-modal').classList.remove('show');
+    document.getElementById('refresh-modal').style.display = 'none';
 }
 
-function setFileTypeFilter(type) {
+function setFileTypeFilter(type, event) {
     currentFileTypeFilter = type;
     
     // 更新按钮状态
@@ -1595,7 +1648,9 @@ function setFileTypeFilter(type) {
     buttons.forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
     
     // 重新渲染文件列表
     renderFiles();
