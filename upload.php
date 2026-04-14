@@ -174,6 +174,16 @@ if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
         exit;
     }
     
+    // 确保用户目录存在
+    $publicDir = $baseUploadDir . 'public/';
+    if (!file_exists($publicDir)) {
+        mkdir($publicDir, 0755, true);
+    }
+    
+    if (!file_exists($userDir)) {
+        mkdir($userDir, 0755, true);
+    }
+    
     // 计算全局总空间使用情况
     $globalUsedSize = calculateGlobalSize($baseUploadDir);
     
@@ -463,6 +473,16 @@ if (isset($_POST['action']) && $_POST['action'] === 'rename') {
     
     if (empty($file) || empty($newName)) {
         echo json_encode(['success' => false, 'message' => '参数错误']);
+        exit;
+    }
+    
+    // 获取原始文件的扩展名
+    $originalExtension = pathinfo($file, PATHINFO_EXTENSION);
+    $newExtension = pathinfo($newName, PATHINFO_EXTENSION);
+    
+    // 非管理员用户不能修改文件后缀
+    if (!$isAdmin && $originalExtension !== $newExtension) {
+        echo json_encode(['success' => false, 'message' => '普通用户不能修改文件后缀']);
         exit;
     }
     

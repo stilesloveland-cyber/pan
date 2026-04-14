@@ -1203,6 +1203,10 @@ function deleteFile(filename, userDir = null) {
 
 // 预览文件
 function previewFile(filename, userDir = null) {
+    // 检查是否为可预览的图片文件
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+    const fileExtension = filename.split('.').pop().toLowerCase();
+    
     // 构建预览链接
     let previewUrl = `preview.php?file=${encodeURIComponent(filename)}&password=${encodeURIComponent(currentPassword)}`;
     if (userDir) {
@@ -1210,7 +1214,7 @@ function previewFile(filename, userDir = null) {
     }
     
     // 检查是否为图片文件
-    if (filename.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    if (imageExtensions.includes(fileExtension)) {
         // 显示图片预览
         const preview = document.createElement('div');
         preview.className = 'image-preview';
@@ -1307,8 +1311,12 @@ function previewFile(filename, userDir = null) {
             }
         });
     } else {
-        // 打开新窗口预览
-        window.open(previewUrl, '_blank');
+        // 非图片文件，提示用户并直接下载
+        showToast('该文件类型不支持在线预览，已开始下载');
+        // 延迟一下让用户看到提示
+        setTimeout(() => {
+            window.open(previewUrl, '_blank');
+        }, 500);
     }
 }
 
