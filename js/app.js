@@ -433,7 +433,10 @@ function uploadFileWithResume(file, isPublic, fileIndex, totalFiles, totalSize, 
 
 // 生成文件唯一标识
 function generateFileId(file) {
-    return btoa(file.name + file.size + file.lastModified);
+    const str = file.name + file.size + file.lastModified;
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+        return String.fromCharCode('0x' + p1);
+    }));
 }
 
 // 检查上传进度
