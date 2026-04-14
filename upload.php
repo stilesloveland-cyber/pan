@@ -92,6 +92,188 @@ if (isset($_GET['action']) && $_GET['action'] === 'ping') {
     exit;
 }
 
+// 处理分块上传
+if (isset($_POST['action']) && $_POST['action'] === 'upload_chunk') {
+    $fileId = isset($_POST['fileId']) ? $_POST['fileId'] : '';
+    $chunk = isset($_POST['chunk']) ? (int)$_POST['chunk'] : 0;
+    $totalChunks = isset($_POST['totalChunks']) ? (int)$_POST['totalChunks'] : 0;
+    $filename = isset($_POST['filename']) ? $_POST['filename'] : '';
+    $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
+    
+    if (empty($fileId) || empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        echo json_encode(['success' => false, 'message' => '上传失败']);
+        exit;
+    }
+    
+    // 创建临时目录
+    $tempDir = $baseUploadDir . 'temp/' . $fileId . '/';
+    if (!file_exists($tempDir)) {
+        mkdir($tempDir, 0755, true);
+    }
+    
+    // 保存分块
+    $chunkFile = $tempDir . $chunk;
+    if (move_uploaded_file($_FILES['file']['tmp_name'], $chunkFile)) {
+        echo json_encode(['success' => true, 'message' => '分块上传成功']);
+    } else {
+        echo json_encode(['success' => false, 'message' => '分块保存失败']);
+    }
+    exit;
+}
+
+// 检查上传进度
+if (isset($_POST['action']) && $_POST['action'] === 'check_progress') {
+    $fileId = isset($_POST['fileId']) ? $_POST['fileId'] : '';
+    
+    if (empty($fileId)) {
+        echo json_encode(['success' => false, 'message' => '参数错误']);
+        exit;
+    }
+    
+    // 检查临时目录
+    $tempDir = $baseUploadDir . 'temp/' . $fileId . '/';
+    if (!file_exists($tempDir)) {
+        echo json_encode(['success' => true, 'currentChunk' => 0]);
+        exit;
+    }
+    
+    // 计算已上传的分块数
+    $chunks = scandir($tempDir);
+    $uploadedChunks = [];
+    foreach ($chunks as $chunk) {
+        if (is_numeric($chunk)) {
+            $uploadedChunks[] = (int)$chunk;
+        }
+    }
+    
+    if (empty($uploadedChunks)) {
+        echo json_encode(['success' => true, 'currentChunk' => 0]);
+    } else {
+        sort($uploadedChunks);
+        $currentChunk = end($uploadedChunks) + 1;
+        echo json_encode(['success' => true, 'currentChunk' => $currentChunk]);
+    }
+    exit;
+}
+
+// 合并分块
+if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
+    $fileId = isset($_POST['fileId']) ? $_POST['fileId'] : '';
+    $filename = isset($_POST['filename']) ? $_POST['filename'] : '';
+    $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
+    
+    if (empty($fileId) || empty($filename)) {
+        echo json_encode(['success' => false, 'message' => '参数错误']);
+        exit;
+    }
+    
+    // 检查临时目录
+    $tempDir = $baseUploadDir . 'temp/' . $fileId . '/';
+    if (!file_exists($tempDir)) {
+        echo json_encode(['success' => false, 'message' => '临时文件不存在']);
+        exit;
+    }
+    
+    // 计算全局总空间使用情况
+    $globalUsedSize = calculateGlobalSize($baseUploadDir);
+    
+    // 计算用户空间使用情况
+    $userUsedSize = calculateDirectorySize($userDir);
+    
+    // 计算公共空间使用情况
+    $publicUsedSize = calculateDirectorySize($publicDir);
+    
+    // 计算文件总大小
+    $chunks = scandir($tempDir);
+    $totalSize = 0;
+    foreach ($chunks as $chunk) {
+        if (is_numeric($chunk)) {
+            $chunkFile = $tempDir . $chunk;
+            $totalSize += filesize($chunkFile);
+        }
+    }
+    
+    // 检查空间是否足够
+    if ($globalUsedSize + $totalSize > $maxTotalSize) {
+        echo json_encode(['success' => false, 'message' => '全局空间不足']);
+        exit;
+    }
+    
+    if ($isPublic) {
+        if ($publicUsedSize + $totalSize > $maxPublicSize) {
+            echo json_encode(['success' => false, 'message' => '公共空间不足']);
+            exit;
+        }
+    } else {
+        if ($userUsedSize + $totalSize > $maxUserSize) {
+            echo json_encode(['success' => false, 'message' => '个人空间不足']);
+            exit;
+        }
+    }
+    
+    // 生成唯一文件名
+    $uniqueName = uniqid() . '_' . $filename;
+    $destination = $isPublic ? $publicDir . $uniqueName : $userDir . $uniqueName;
+    
+    // 确保目标目录存在
+    $targetDir = dirname($destination);
+    if (!file_exists($targetDir)) {
+        mkdir($targetDir, 0755, true);
+    }
+    
+    // 合并分块
+    $output = fopen($destination, 'wb');
+    if (!$output) {
+        echo json_encode(['success' => false, 'message' => '文件创建失败']);
+        exit;
+    }
+    
+    $chunks = scandir($tempDir);
+    $chunkNumbers = [];
+    foreach ($chunks as $chunk) {
+        if (is_numeric($chunk)) {
+            $chunkNumbers[] = (int)$chunk;
+        }
+    }
+    
+    sort($chunkNumbers);
+    
+    foreach ($chunkNumbers as $chunkNumber) {
+        $chunkFile = $tempDir . $chunkNumber;
+        $input = fopen($chunkFile, 'rb');
+        if ($input) {
+            stream_copy_to_stream($input, $output);
+            fclose($input);
+        }
+    }
+    
+    fclose($output);
+    
+    // 清理临时文件
+    array_map('unlink', glob($tempDir . '*'));
+    rmdir($tempDir);
+    
+    // 更新空间使用情况
+    if ($isPublic) {
+        $publicUsedSize += $totalSize;
+    } else {
+        $userUsedSize += $totalSize;
+    }
+    $globalUsedSize += $totalSize;
+    
+    echo json_encode([
+        'success' => true, 
+        'message' => '文件上传成功', 
+        'usedSize' => $userUsedSize, 
+        'maxSize' => $maxUserSize,
+        'globalUsedSize' => $globalUsedSize,
+        'globalMaxSize' => $maxTotalSize,
+        'publicUsedSize' => $publicUsedSize,
+        'publicMaxSize' => $maxPublicSize
+    ]);
+    exit;
+}
+
 // 处理用户注册
 if (isset($_POST['action']) && $_POST['action'] === 'register') {
     $password = isset($_POST['password']) ? $_POST['password'] : '';
@@ -269,6 +451,203 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
         echo json_encode(['success' => true, 'message' => '文件删除成功', 'usedSize' => $usedSize, 'maxSize' => $maxTotalSize]);
     } else {
         echo json_encode(['success' => false, 'message' => '文件删除失败']);
+    }
+    exit;
+}
+
+// 处理重命名请求
+if (isset($_POST['action']) && $_POST['action'] === 'rename') {
+    $file = isset($_POST['file']) ? $_POST['file'] : '';
+    $newName = isset($_POST['new_name']) ? $_POST['new_name'] : '';
+    $userDirParam = isset($_POST['userDir']) ? $_POST['userDir'] : '';
+    
+    if (empty($file) || empty($newName)) {
+        echo json_encode(['success' => false, 'message' => '参数错误']);
+        exit;
+    }
+    
+    // 确定文件路径
+    if ($isAdmin && !empty($userDirParam)) {
+        // 管理员可以重命名所有用户的文件
+        $filePath = $baseUploadDir . $userDirParam . '/' . basename($file);
+        $newFilePath = $baseUploadDir . $userDirParam . '/' . uniqid() . '_' . $newName;
+    } else {
+        // 普通用户只能重命名自己的文件
+        $filePath = $userDir . basename($file);
+        $newFilePath = $userDir . uniqid() . '_' . $newName;
+    }
+    
+    // 安全检查：确保文件存在
+    if (file_exists($filePath) && is_file($filePath)) {
+        // 安全检查：确保文件路径在允许的范围内
+        if ($isAdmin || strpos(realpath($filePath), realpath($userDir)) === 0) {
+            if (rename($filePath, $newFilePath)) {
+                echo json_encode(['success' => true, 'message' => '文件重命名成功']);
+            } else {
+                echo json_encode(['success' => false, 'message' => '重命名失败']);
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => '无权限操作']);
+        }
+    } else {
+        echo json_encode(['success' => false, 'message' => '文件不存在']);
+    }
+    exit;
+}
+
+// 处理创建文件夹请求
+if (isset($_POST['action']) && $_POST['action'] === 'create_folder') {
+    $folderName = isset($_POST['folder_name']) ? $_POST['folder_name'] : '';
+    $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
+    
+    if (empty($folderName)) {
+        echo json_encode(['success' => false, 'message' => '文件夹名称不能为空']);
+        exit;
+    }
+    
+    // 确定文件夹路径
+    $targetDir = $isPublic ? $publicDir : $userDir;
+    $folderPath = $targetDir . $folderName . '/';
+    
+    // 安全检查：确保文件夹不存在
+    if (!file_exists($folderPath)) {
+        if (mkdir($folderPath, 0755, true)) {
+            echo json_encode(['success' => true, 'message' => '文件夹创建成功']);
+        } else {
+            echo json_encode(['success' => false, 'message' => '创建失败']);
+        }
+    } else {
+        echo json_encode(['success' => false, 'message' => '文件夹已存在']);
+    }
+    exit;
+}
+
+// 处理移动文件请求
+if (isset($_POST['action']) && $_POST['action'] === 'move_file') {
+    $file = isset($_POST['file']) ? $_POST['file'] : '';
+    $targetFolder = isset($_POST['target_folder']) ? $_POST['target_folder'] : '';
+    $userDirParam = isset($_POST['userDir']) ? $_POST['userDir'] : '';
+    
+    if (empty($file) || empty($targetFolder)) {
+        echo json_encode(['success' => false, 'message' => '参数错误']);
+        exit;
+    }
+    
+    // 确定文件路径
+    if ($isAdmin && !empty($userDirParam)) {
+        // 管理员可以移动所有用户的文件
+        $filePath = $baseUploadDir . $userDirParam . '/' . basename($file);
+        $targetPath = $baseUploadDir . $userDirParam . '/' . $targetFolder . '/' . basename($file);
+    } else {
+        // 普通用户只能移动自己的文件
+        $filePath = $userDir . basename($file);
+        $targetPath = $userDir . $targetFolder . '/' . basename($file);
+    }
+    
+    // 安全检查：确保文件存在
+    if (file_exists($filePath) && is_file($filePath)) {
+        // 安全检查：确保文件路径在允许的范围内
+        if ($isAdmin || strpos(realpath($filePath), realpath($userDir)) === 0) {
+            // 确保目标文件夹存在
+            $targetDir = dirname($targetPath);
+            if (!file_exists($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+            
+            if (rename($filePath, $targetPath)) {
+                echo json_encode(['success' => true, 'message' => '文件移动成功']);
+            } else {
+                echo json_encode(['success' => false, 'message' => '移动失败']);
+            }
+        } else {
+            echo json_encode(['success' => false, 'message' => '无权限操作']);
+        }
+    } else {
+        echo json_encode(['success' => false, 'message' => '文件不存在']);
+    }
+    exit;
+}
+
+// 处理批量移动文件请求
+if (isset($_POST['action']) && $_POST['action'] === 'batch_move') {
+    $files = isset($_POST['files']) ? $_POST['files'] : [];
+    $targetFolder = isset($_POST['target_folder']) ? $_POST['target_folder'] : '';
+    
+    if (empty($files) || empty($targetFolder)) {
+        echo json_encode(['success' => false, 'message' => '参数错误']);
+        exit;
+    }
+    
+    $movedCount = 0;
+    
+    foreach ($files as $file) {
+        // 确定文件路径
+        $filePath = $userDir . basename($file);
+        $targetPath = $userDir . $targetFolder . '/' . basename($file);
+        
+        // 安全检查：确保文件存在
+        if (file_exists($filePath) && is_file($filePath)) {
+            // 安全检查：确保文件路径在允许的范围内
+            if (strpos(realpath($filePath), realpath($userDir)) === 0) {
+                // 确保目标文件夹存在
+                $targetDir = dirname($targetPath);
+                if (!file_exists($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+                
+                if (rename($filePath, $targetPath)) {
+                    $movedCount++;
+                }
+            }
+        }
+    }
+    
+    if ($movedCount > 0) {
+        echo json_encode(['success' => true, 'message' => '文件移动成功']);
+    } else {
+        echo json_encode(['success' => false, 'message' => '移动失败']);
+    }
+    exit;
+}
+
+// 处理批量重命名文件请求
+if (isset($_POST['action']) && $_POST['action'] === 'batch_rename') {
+    $files = isset($_POST['files']) ? $_POST['files'] : [];
+    $prefix = isset($_POST['prefix']) ? $_POST['prefix'] : '';
+    
+    if (empty($files) || empty($prefix)) {
+        echo json_encode(['success' => false, 'message' => '参数错误']);
+        exit;
+    }
+    
+    $renamedCount = 0;
+    $counter = 1;
+    
+    foreach ($files as $file) {
+        // 确定文件路径
+        $filePath = $userDir . basename($file);
+        
+        // 安全检查：确保文件存在
+        if (file_exists($filePath) && is_file($filePath)) {
+            // 安全检查：确保文件路径在允许的范围内
+            if (strpos(realpath($filePath), realpath($userDir)) === 0) {
+                // 获取文件扩展名
+                $extension = pathinfo($file, PATHINFO_EXTENSION);
+                $newName = $prefix . '_' . $counter . ($extension ? '.' . $extension : '');
+                $newFilePath = $userDir . uniqid() . '_' . $newName;
+                
+                if (rename($filePath, $newFilePath)) {
+                    $renamedCount++;
+                    $counter++;
+                }
+            }
+        }
+    }
+    
+    if ($renamedCount > 0) {
+        echo json_encode(['success' => true, 'message' => '文件重命名成功']);
+    } else {
+        echo json_encode(['success' => false, 'message' => '重命名失败']);
     }
     exit;
 }
