@@ -179,6 +179,13 @@
                     <div class="section-header">
                         <h2><i class="fas fa-folder-open"></i> <span id="section-title">个人文件</span></h2>
                         <div class="section-actions">
+                            <div class="file-type-filter">
+                                <button class="btn btn-sm filter-btn active" onclick="setFileTypeFilter('all')">全部</button>
+                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('image')">图片</button>
+                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('video')">视频</button>
+                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('document')">文档</button>
+                                <button class="btn btn-sm filter-btn" onclick="setFileTypeFilter('other')">其他</button>
+                            </div>
                             <button class="btn btn-sm" onclick="selectAllFiles()">
                                 <i class="fas fa-check-square"></i> 全选
                             </button>
@@ -190,6 +197,9 @@
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()">
                                 <i class="fas fa-trash"></i> 删除
+                            </button>
+                            <button class="btn btn-sm" onclick="showRefreshSettings()">
+                                <i class="fas fa-sync"></i> 刷新
                             </button>
                         </div>
                     </div>
@@ -276,6 +286,25 @@
                         <button type="submit" class="btn">生成链接</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 刷新设置弹窗 -->
+    <div id="refresh-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>自动刷新设置</h2>
+                <button class="modal-close" onclick="closeRefreshModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px;">选择自动刷新间隔：</p>
+                <div class="form-group">
+                    <button class="btn" style="width: 100%; margin-bottom: 10px;" onclick="setAutoRefresh(10); closeRefreshModal();">10秒</button>
+                    <button class="btn" style="width: 100%; margin-bottom: 10px;" onclick="setAutoRefresh(30); closeRefreshModal();">30秒</button>
+                    <button class="btn" style="width: 100%; margin-bottom: 10px;" onclick="setAutoRefresh(60); closeRefreshModal();">60秒</button>
+                    <button class="btn btn-outline" style="width: 100%;" onclick="setAutoRefresh(0); closeRefreshModal();">关闭</button>
+                </div>
             </div>
         </div>
     </div>

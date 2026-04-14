@@ -17,6 +17,8 @@ let cacheExpiry = 5 * 60 * 1000; // 缓存过期时间（5分钟）
 let isLoading = false; // 是否正在加载
 let pageSize = 20; // 每页显示的文件数量
 let currentPage = 1; // 当前页码
+let autoRefreshInterval = null; // 自动刷新定时器
+let currentFileTypeFilter = 'all'; // 当前文件类型筛选
 
 // DOM 元素
 const loginContainer = document.getElementById('login-container');
@@ -54,6 +56,9 @@ function init() {
     
     // 初始化网络状态检测
     initNetworkStatus();
+    
+    // 初始化自动刷新
+    initAutoRefresh();
 }
 
 // 检查登录状态
@@ -98,6 +103,13 @@ function handleLogin(event) {
             currentPassword = password;
             localStorage.setItem('password', password);
             isAdmin = (password === 'admin');
+            
+            // 管理员登录后跳转到后台
+            if (isAdmin) {
+                window.location.href = 'admin/index.html';
+                return;
+            }
+            
             showMain();
             refreshFileList();
         } else {
@@ -210,16 +222,11 @@ function handleChangePassword(event) {
 
 // 初始化上传区域
 function initUploadArea() {
-    console.log('initUploadArea called');
     const uploadArea = document.getElementById('upload-area');
     const fileInput = document.getElementById('file-input');
     
-    console.log('uploadArea:', uploadArea);
-    console.log('fileInput:', fileInput);
-    
     // 点击上传
     uploadArea.addEventListener('click', () => {
-        console.log('uploadArea clicked');
         fileInput.click();
     });
     
@@ -267,9 +274,6 @@ let uploadTasks = [];
 
 // 上传文件
 function uploadFiles(files, isPublic = false) {
-    console.log('uploadFiles called with', files.length, 'files, isPublic:', isPublic);
-    console.log('currentPassword:', currentPassword);
-    
     const progressBar = document.getElementById('progress-bar');
     const progressFill = document.getElementById('progress-fill');
     
@@ -720,6 +724,11 @@ function refreshFileList(forceRefresh = false) {
     const now = Date.now();
     const startTime = Date.now();
     
+    // 强制刷新时清除缓存
+    if (forceRefresh) {
+        delete fileCache[cacheKey];
+    }
+    
     // 检查缓存是否有效
     if (!forceRefresh && fileCache[cacheKey] && (now - fileCache[cacheKey].timestamp < cacheExpiry)) {
         const cachedData = fileCache[cacheKey].data;
@@ -902,7 +911,25 @@ function searchFiles() {
 
 // 渲染文件
 function renderFiles(filteredFiles = null) {
-    const currentFiles = filteredFiles || (currentView === 'personal' ? files : publicFiles);
+    let currentFiles = filteredFiles || (currentView === 'personal' ? files : publicFiles);
+    
+    // 按文件类型筛选
+    if (currentFileTypeFilter !== 'all') {
+        const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
+        const videoTypes = ['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv'];
+        const documentTypes = ['doc', 'docx', 'pdf', 'txt', 'xls', 'xlsx', 'ppt', 'pptx', 'md'];
+        
+        currentFiles = currentFiles.filter(file => {
+            const ext = file.name.split('.').pop().toLowerCase();
+            switch (currentFileTypeFilter) {
+                case 'image': return imageTypes.includes(ext);
+                case 'video': return videoTypes.includes(ext);
+                case 'document': return documentTypes.includes(ext);
+                case 'other': return !imageTypes.includes(ext) && !videoTypes.includes(ext) && !documentTypes.includes(ext);
+                default: return true;
+            }
+        });
+    }
     
     // 计算分页
     const startIndex = (currentPage - 1) * pageSize;
@@ -986,7 +1013,7 @@ function renderListView(files, totalFiles = 0) {
                 <button class="btn btn-sm" onclick="previewFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-eye"></i> 预览</button>
                 <button class="btn btn-sm" onclick="shareFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-share-alt"></i> 分享</button>
                 <button class="btn btn-sm" onclick="renameFile('${file.filename}', '${file.name}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-edit"></i> 重命名</button>
-                <a href="${downloadUrl}" class="btn btn-sm" download="${file.name}"><i class="fas fa-download"></i> 下载</a>
+                <button class="btn btn-sm" onclick="confirmDownload('${downloadUrl}', '${file.name}')"><i class="fas fa-download"></i> 下载</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-trash"></i> 删除</button>
             </div>
         `;
@@ -1078,9 +1105,9 @@ function renderGridView(files, totalFiles = 0) {
                 </button>
                 <button class="btn btn-sm" onclick="renameFile('${file.filename}', '${file.name}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-edit"></i>
                 </button>
-                <a href="${downloadUrl}" class="btn btn-sm" download="${file.name}">
+                <button class="btn btn-sm" onclick="confirmDownload('${downloadUrl}', '${file.name}')">
                     <i class="fas fa-download"></i>
-                </a>
+                </button>
                 <button class="btn btn-sm btn-danger" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -1216,10 +1243,17 @@ function deleteFile(filename, userDir = null) {
     }
 }
 
+// 确认下载
+function confirmDownload(url, filename) {
+    if (confirm(`确定要下载 "${filename}" 吗？`)) {
+        window.open(url, '_blank');
+    }
+}
+
 // 预览文件
 function previewFile(filename, userDir = null) {
     // 检查是否为可预览的图片文件
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tif', 'tiff'];
     const fileExtension = filename.split('.').pop().toLowerCase();
     
     // 构建预览链接
@@ -1240,7 +1274,7 @@ function previewFile(filename, userDir = null) {
                 <span id="image-dimensions">加载中...</span>
             </div>
             <div class="image-preview-content">
-                <img src="${previewUrl}" alt="预览图片" onload="updateImageInfo(this)">
+                <img src="${previewUrl}" alt="预览图片" onload="updateImageInfo(this)" onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><text y=%2250%22 x=%2250%22 text-anchor=%22middle%22>无法预览</text></svg>'">
                 <div class="image-preview-actions">
                     <button onclick="rotateImage(this, 90)" title="顺时针旋转"><i class="fas fa-undo"></i></button>
                     <button onclick="rotateImage(this, -90)" title="逆时针旋转"><i class="fas fa-undo-alt"></i></button>
@@ -1504,6 +1538,67 @@ function initNetworkStatus() {
     // 初始状态
     pingValue.textContent = '-- ms';
     networkStatus.className = 'network-status';
+}
+
+// 自动刷新功能
+function initAutoRefresh() {
+    // 从localStorage读取刷新间隔
+    const savedInterval = localStorage.getItem('autoRefreshInterval');
+    if (savedInterval) {
+        const interval = parseInt(savedInterval);
+        if (interval > 0) {
+            startAutoRefresh(interval);
+        }
+    }
+}
+
+function startAutoRefresh(interval) {
+    // 清除之前的定时器
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    
+    if (interval <= 0) {
+        // 关闭自动刷新
+        localStorage.setItem('autoRefreshInterval', '0');
+        return;
+    }
+    
+    // 设置新的定时器
+    autoRefreshInterval = setInterval(() => {
+        if (currentPassword && mainContainer.style.display !== 'none') {
+            refreshFileList(true);
+        }
+    }, interval * 1000);
+    
+    localStorage.setItem('autoRefreshInterval', interval.toString());
+}
+
+function setAutoRefresh(interval) {
+    startAutoRefresh(interval);
+    showToast(`自动刷新已设置为 ${interval === 0 ? '关闭' : interval + '秒'}`);
+}
+
+function showRefreshSettings() {
+    document.getElementById('refresh-modal').classList.add('show');
+}
+
+function closeRefreshModal() {
+    document.getElementById('refresh-modal').classList.remove('show');
+}
+
+function setFileTypeFilter(type) {
+    currentFileTypeFilter = type;
+    
+    // 更新按钮状态
+    const buttons = document.querySelectorAll('.filter-btn');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // 重新渲染文件列表
+    renderFiles();
 }
 
 // 检查网络状态并更新UI

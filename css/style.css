@@ -460,11 +460,16 @@ body {
     background-color: var(--card-bg);
     border: 2px dashed var(--border-color);
     border-radius: var(--border-radius);
-    padding: 60px 20px;
+    padding: 20px;
     text-align: center;
     margin-bottom: 20px;
     transition: var(--transition);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    min-height: auto;
 }
 
 .upload-area:hover {
@@ -478,9 +483,8 @@ body {
 }
 
 .upload-icon {
-    font-size: 60px;
+    font-size: 24px;
     color: var(--border-color);
-    margin-bottom: 20px;
     transition: var(--transition);
 }
 
@@ -489,21 +493,19 @@ body {
 }
 
 .upload-text {
-    font-size: 18px;
-    margin-bottom: 10px;
+    font-size: 14px;
+    margin: 0;
     font-weight: 500;
 }
 
 .upload-subtext {
-    color: var(--text-light);
-    margin-bottom: 20px;
+    display: none;
 }
 
 .upload-options {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin-top: 15px;
 }
 
 #file-input {
@@ -544,6 +546,21 @@ body {
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.file-type-filter {
+    display: flex;
+    gap: 5px;
+}
+
+.file-type-filter .filter-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.file-type-filter .filter-btn.active {
+    background-color: var(--primary-color);
+    color: white;
 }
 
 /* 列表视图 */

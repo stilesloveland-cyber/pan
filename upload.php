@@ -43,6 +43,48 @@ function saveUsers($users) {
     file_put_contents($usersFile, json_encode($users));
 }
 
+// 操作日志记录
+function logOperation($password, $action, $filename, $location) {
+    global $baseUploadDir;
+    $logFile = $baseUploadDir . 'operation_log.json';
+    $logs = [];
+    
+    if (file_exists($logFile)) {
+        $logs = json_decode(file_get_contents($logFile), true);
+    }
+    
+    $isAdmin = ($password === 'admin');
+    $userLabel = $isAdmin ? '管理员' : md5($password);
+    
+    $logs[] = [
+        'time' => date('Y-m-d H:i:s'),
+        'user' => $userLabel,
+        'action' => $action,
+        'filename' => $filename,
+        'location' => $location
+    ];
+    
+    // 只保留最近1000条记录
+    if (count($logs) > 1000) {
+        $logs = array_slice($logs, -1000);
+    }
+    
+    file_put_contents($logFile, json_encode($logs));
+}
+
+// 获取操作日志
+function getOperationLogs($limit = 100) {
+    global $baseUploadDir;
+    $logFile = $baseUploadDir . 'operation_log.json';
+    
+    if (!file_exists($logFile)) {
+        return [];
+    }
+    
+    $logs = json_decode(file_get_contents($logFile), true);
+    return array_slice(array_reverse($logs), 0, $limit);
+}
+
 // 检查用户是否已注册
 function isUserRegistered($password) {
     global $adminPassword;
@@ -272,6 +314,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
     }
     $globalUsedSize += $totalSize;
     
+    // 记录操作日志
+    logOperation($password, 'upload', $filename, $isPublic ? 'public' : 'personal');
+    
     echo json_encode([
         'success' => true, 
         'message' => '文件上传成功', 
@@ -427,6 +472,7 @@ function calculateDirectorySize($dir) {
 if (isset($_POST['action']) && $_POST['action'] === 'delete') {
     $files = isset($_POST['files']) ? $_POST['files'] : (isset($_POST['file']) ? [$_POST['file']] : []);
     $userDirParam = isset($_POST['userDir']) ? $_POST['userDir'] : '';
+    $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
     
     if (empty($files)) {
         echo json_encode(['success' => false, 'message' => '请选择要删除的文件']);
@@ -440,17 +486,29 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
         if ($isAdmin && !empty($userDirParam)) {
             // 管理员可以删除所有用户的文件
             $filePath = $baseUploadDir . $userDirParam . '/' . basename($file);
+            $targetDir = $baseUploadDir . $userDirParam . '/';
+        } elseif ($isPublic) {
+            // 公共空间文件
+            $filePath = $publicDir . basename($file);
+            $targetDir = $publicDir;
         } else {
             // 普通用户只能删除自己的文件
             $filePath = $userDir . basename($file);
+            $targetDir = $userDir;
         }
         
         // 安全检查：确保文件存在
         if (file_exists($filePath) && is_file($filePath)) {
             // 安全检查：确保文件路径在允许的范围内
-            if ($isAdmin || strpos(realpath($filePath), realpath($userDir)) === 0) {
-                if (unlink($filePath)) {
-                    $deletedCount++;
+            $realTargetDir = realpath($targetDir);
+            $realFilePath = realpath($filePath);
+            if ($realTargetDir !== false && $realFilePath !== false) {
+                if ($isAdmin || strpos($realFilePath, $realTargetDir) === 0) {
+                    if (unlink($filePath)) {
+                        $deletedCount++;
+                        // 记录操作日志
+                        logOperation($password, 'delete', basename($file), $isPublic ? 'public' : 'personal');
+                    }
                 }
             }
         }
@@ -459,7 +517,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
     if ($deletedCount > 0) {
         // 计算删除后的空间使用情况
         $usedSize = calculateDirectorySize($userDir);
-        echo json_encode(['success' => true, 'message' => '文件删除成功', 'usedSize' => $usedSize, 'maxSize' => $maxTotalSize]);
+        $publicUsedSize = calculateDirectorySize($publicDir);
+        echo json_encode([
+            'success' => true, 
+            'message' => '文件删除成功', 
+            'usedSize' => $usedSize, 
+            'maxSize' => $maxTotalSize,
+            'publicUsedSize' => $publicUsedSize
+        ]);
     } else {
         echo json_encode(['success' => false, 'message' => '文件删除失败']);
     }
@@ -503,6 +568,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'rename') {
         // 安全检查：确保文件路径在允许的范围内
         if ($isAdmin || strpos(realpath($filePath), realpath($userDir)) === 0) {
             if (rename($filePath, $newFilePath)) {
+                // 记录操作日志
+                logOperation($password, 'rename', $newName, $isAdmin && !empty($userDirParam) ? $userDirParam : 'personal');
                 echo json_encode(['success' => true, 'message' => '文件重命名成功']);
             } else {
                 echo json_encode(['success' => false, 'message' => '重命名失败']);
@@ -913,5 +980,19 @@ function getUploadErrorMsg($errorCode) {
         default:
             return '未知错误';
     }
+}
+
+// 处理获取操作日志
+if (isset($_POST['action']) && $_POST['action'] === 'get_logs') {
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    
+    if ($password !== 'admin') {
+        echo json_encode(['success' => false, 'message' => '权限不足']);
+        exit;
+    }
+    
+    $logs = getOperationLogs(100);
+    echo json_encode(['success' => true, 'logs' => $logs]);
+    exit;
 }
 ?>
