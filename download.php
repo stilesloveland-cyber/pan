@@ -59,15 +59,7 @@ header('Content-Length: ' . filesize($filePath));
 ob_clean();
 flush();
 
-// 使用流式读取输出文件内容
-$handle = fopen($filePath, 'rb');
-if ($handle) {
-    while (!feof($handle)) {
-        $buffer = fread($handle, 8192);
-        echo $buffer;
-        flush();
-    }
-    fclose($handle);
-}
+// 读取并输出文件内容
+readfile($filePath);
 exit;
 ?>
