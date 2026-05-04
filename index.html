@@ -13,602 +13,571 @@
         }
 
         :root {
-            --primary: #6366f1;
-            --primary-light: #818cf8;
-            --primary-dark: #4f46e5;
-            --gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
-            --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
-            --gradient-success: linear-gradient(135deg, #10b981, #059669);
-            --bg: #f0f2f5;
-            --bg-card: rgba(255, 255, 255, 0.85);
-            --bg-glass: rgba(255, 255, 255, 0.75);
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --text-muted: #94a3b8;
-            --border: rgba(0, 0, 0, 0.08);
-            --border-light: rgba(0, 0, 0, 0.04);
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
-            --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.25);
-            --radius: 12px;
-            --radius-sm: 8px;
-            --radius-lg: 16px;
-            --radius-xl: 20px;
-            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-slow: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --primary: #19b955;
+            --primary-dark: #14a34a;
+            --primary-light: #e8f8ee;
+            --primary-bg: #f0faf3;
+            --bg: #f5f6fa;
+            --bg-white: #ffffff;
+            --text-primary: #222;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --border: #eee;
+            --border-light: #f5f5f5;
+            --success: #19b955;
+            --danger: #fa5151;
+            --warning: #ff9500;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+            --radius: 8px;
+            --radius-sm: 6px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --transition: all 0.2s ease;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Roboto, Arial, sans-serif;
             background: var(--bg);
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.5;
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--text-muted);
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-            animation: fadeIn 0.4s ease;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #bbb; }
 
         .network-status {
             position: fixed;
-            top: 16px;
+            top: 12px;
             right: 16px;
-            padding: 8px 18px;
-            background: var(--bg-glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            padding: 6px 14px;
+            background: var(--bg-white);
             border: 1px solid var(--border);
             border-radius: 50px;
             box-shadow: var(--shadow-sm);
-            font-size: 13px;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             z-index: 1000;
-            transition: var(--transition);
         }
-        .network-status.good { border-color: var(--success); }
-        .network-status.warning { border-color: var(--warning); }
-        .network-status.bad { border-color: var(--danger); }
-        .network-status i { font-size: 12px; }
+        .network-status i { font-size: 11px; }
         .network-status.good i { color: var(--success); }
         .network-status.warning i { color: var(--warning); }
         .network-status.bad i { color: var(--danger); }
 
         .login-container {
-            max-width: 420px;
-            margin: 120px auto;
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            padding: 48px 40px 40px;
-            border-radius: var(--radius-xl);
+            max-width: 400px;
+            margin: 100px auto;
+            background: var(--bg-white);
+            padding: 48px 36px 36px;
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
-            border: 1px solid var(--border-light);
             text-align: center;
-            animation: slideUp 0.5s ease;
+            animation: fadeInUp 0.5s ease;
         }
-        .login-container h1 {
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 32px;
-            font-size: 26px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-weight: 700;
+        .login-container .logo {
+            margin-bottom: 8px;
         }
-        .login-container h1 i {
-            -webkit-text-fill-color: initial;
+        .login-container .logo i {
+            font-size: 48px;
             color: var(--primary);
         }
-
+        .login-container h1 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .login-container .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
         .login-form {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
         }
         .form-group {
             text-align: left;
         }
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
+            margin-bottom: 6px;
+            font-weight: 500;
             color: var(--text-primary);
             font-size: 14px;
         }
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid var(--border);
+            padding: 11px 14px;
+            border: 1px solid var(--border);
             border-radius: var(--radius);
-            font-size: 15px;
+            font-size: 14px;
             transition: var(--transition);
-            background: rgba(255,255,255,0.8);
+            background: #fafafa;
             color: var(--text-primary);
         }
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-        }
-        .form-group input:hover {
-            border-color: var(--primary-light);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(25, 185, 85, 0.1);
         }
 
         .main-layout {
             display: flex;
-            gap: 24px;
-            min-height: calc(100vh - 40px);
+            min-height: 100vh;
         }
 
         .sidebar {
-            width: 260px;
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: var(--radius-lg);
-            padding: 24px 20px;
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow-sm);
+            width: 230px;
+            background: var(--bg-white);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
             flex-shrink: 0;
-            transition: var(--transition);
-            height: fit-content;
-            position: sticky;
-            top: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
         }
-        .sidebar-section {
-            margin-bottom: 28px;
+        .sidebar-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border);
         }
-        .sidebar-section:last-child {
-            margin-bottom: 0;
-        }
-        .sidebar-section h3 {
-            font-size: 11px;
+        .sidebar-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
             font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 14px;
-            padding-left: 4px;
+            color: var(--text-primary);
+            text-decoration: none;
         }
-        .sidebar-menu {
+        .sidebar-header .logo i {
+            color: var(--primary);
+            font-size: 24px;
+        }
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 12px;
+        }
+        .sidebar-upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 16px;
+        }
+        .sidebar-upload-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(25, 185, 85, 0.3);
+        }
+        .sidebar-nav {
             list-style: none;
         }
-        .sidebar-menu li {
-            margin-bottom: 4px;
+        .sidebar-nav li {
+            margin-bottom: 2px;
         }
-        .sidebar-menu a {
+        .sidebar-nav a {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             padding: 10px 14px;
-            border-radius: var(--radius);
+            border-radius: var(--radius-sm);
             color: var(--text-secondary);
             text-decoration: none;
-            font-weight: 500;
             font-size: 14px;
+            font-weight: 500;
             transition: var(--transition);
         }
-        .sidebar-menu a i {
+        .sidebar-nav a i {
             width: 18px;
             text-align: center;
-            font-size: 15px;
+            font-size: 16px;
+            color: var(--text-muted);
+            transition: var(--transition);
         }
-        .sidebar-menu a:hover {
-            background: rgba(99, 102, 241, 0.08);
+        .sidebar-nav a:hover {
+            background: var(--primary-light);
             color: var(--primary);
         }
-        .sidebar-menu a.active {
-            background: var(--gradient);
-            color: #fff;
-            box-shadow: var(--shadow-glow);
+        .sidebar-nav a:hover i {
+            color: var(--primary);
         }
-
-        .space-info-card {
-            background: rgba(255,255,255,0.5);
-            border-radius: var(--radius);
-            padding: 18px;
-            border: 1px solid var(--border-light);
-        }
-        .space-info-item {
-            margin-bottom: 14px;
-        }
-        .space-info-item:last-child { margin-bottom: 0; }
-        .space-info-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-            font-size: 13px;
-        }
-        .space-info-label {
+        .sidebar-nav a.active {
+            background: var(--primary-light);
+            color: var(--primary);
             font-weight: 600;
-            color: var(--text-primary);
         }
-        .space-info-value {
+        .sidebar-nav a.active i {
+            color: var(--primary);
+        }
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+        }
+        .sidebar-space-label {
             font-size: 12px;
             color: var(--text-muted);
-            font-weight: 500;
+            margin-bottom: 6px;
         }
-        .space-bar {
+        .sidebar-space-bar {
             width: 100%;
-            height: 6px;
-            background: rgba(0,0,0,0.06);
-            border-radius: 3px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
             overflow: hidden;
+            margin-bottom: 4px;
         }
-        .space-fill {
+        .sidebar-space-fill {
             height: 100%;
-            border-radius: 3px;
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.5s ease;
         }
-        .space-fill.personal {
-            background: var(--gradient);
-        }
-        .space-fill.global {
-            background: var(--gradient-success);
-        }
-        .space-fill.public {
-            background: var(--gradient-warm);
+        .sidebar-space-text {
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
         .main-content {
             flex: 1;
+            margin-left: 230px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
             min-width: 0;
         }
 
         .top-bar {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: var(--radius-lg);
-            padding: 20px 24px;
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow-sm);
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            height: 60px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
+            justify-content: space-between;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
         .top-bar-left {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 24px;
         }
         .top-bar-left h1 {
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: 22px;
-            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-weight: 700;
+            gap: 8px;
         }
         .top-bar-left h1 i {
-            -webkit-text-fill-color: initial;
             color: var(--primary);
         }
         .user-info {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 14px;
-            background: rgba(0,0,0,0.03);
-            border-radius: 50px;
+            gap: 6px;
             font-size: 13px;
             color: var(--text-secondary);
         }
         .user-info i {
             color: var(--primary);
+            font-size: 16px;
         }
         .admin-badge {
-            padding: 2px 10px;
-            background: var(--gradient-warm);
-            color: #fff;
+            padding: 1px 8px;
+            background: var(--primary-light);
+            color: var(--primary);
             border-radius: 50px;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 600;
         }
         .top-bar-right {
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .content-body {
+            padding: 24px 32px;
+            flex: 1;
         }
 
         .toolbar {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: var(--radius-lg);
-            padding: 14px 20px;
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 12px;
+            margin-bottom: 16px;
         }
         .toolbar-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
         .toolbar-right {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
         .view-toggle {
             display: flex;
-            background: rgba(0,0,0,0.04);
-            border-radius: var(--radius);
-            padding: 3px;
+            background: var(--border);
+            border-radius: var(--radius-sm);
+            padding: 2px;
         }
         .view-toggle button {
-            padding: 7px 14px;
+            padding: 6px 12px;
             border: none;
             background: transparent;
             cursor: pointer;
             transition: var(--transition);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             font-size: 13px;
-            font-weight: 500;
-            border-radius: 8px;
-            color: var(--text-secondary);
+            border-radius: 5px;
+            color: var(--text-muted);
         }
         .view-toggle button:hover {
-            color: var(--primary);
+            color: var(--text-secondary);
         }
         .view-toggle button.active {
-            background: #fff;
-            color: var(--primary);
+            background: var(--bg-white);
+            color: var(--text-primary);
             box-shadow: var(--shadow-sm);
         }
 
         .sort-select {
-            padding: 8px 14px;
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             font-size: 13px;
-            background: rgba(255,255,255,0.8);
+            background: var(--bg-white);
             cursor: pointer;
-            transition: var(--transition);
-            color: var(--text-primary);
-            font-weight: 500;
+            color: var(--text-secondary);
         }
         .sort-select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
         }
 
         .search-box {
             position: relative;
         }
         .search-box input {
-            padding: 8px 14px 8px 38px;
-            border: 2px solid var(--border);
-            border-radius: 50px;
+            padding: 6px 12px 6px 34px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             font-size: 13px;
             transition: var(--transition);
             width: 180px;
-            background: rgba(255,255,255,0.8);
+            background: var(--bg-white);
             color: var(--text-primary);
         }
         .search-box input:focus {
             outline: none;
             border-color: var(--primary);
-            width: 240px;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+            width: 220px;
         }
         .search-box input::placeholder {
-            color: var(--text-muted);
+            color: #bbb;
         }
         .search-box i {
             position: absolute;
-            left: 14px;
+            left: 11px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--text-muted);
-            font-size: 14px;
+            color: #bbb;
+            font-size: 13px;
             pointer-events: none;
         }
 
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 9px 20px;
-            background: var(--gradient);
-            color: #fff;
-            border: none;
-            border-radius: var(--radius);
+            gap: 5px;
+            padding: 7px 16px;
+            background: var(--bg-white);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 500;
             transition: var(--transition);
             text-decoration: none;
-            position: relative;
-            overflow: hidden;
-        }
-        .btn::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(255,255,255,0.15);
-            opacity: 0;
-            transition: opacity 0.3s;
+            white-space: nowrap;
         }
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+            border-color: #ddd;
+            color: var(--text-primary);
+            background: #fafafa;
         }
-        .btn:hover::after { opacity: 1; }
-        .btn:active {
-            transform: translateY(0);
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
         }
-
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            color: #fff;
+        }
         .btn-secondary {
-            background: rgba(0,0,0,0.06);
+            background: var(--border);
             color: var(--text-secondary);
+            border-color: transparent;
         }
         .btn-secondary:hover {
-            background: rgba(0,0,0,0.1);
-            box-shadow: none;
+            background: #ddd;
             color: var(--text-primary);
         }
-
         .btn-danger {
-            background: var(--danger);
+            color: var(--danger);
+            border-color: #fee;
         }
         .btn-danger:hover {
-            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35);
+            background: #fef2f2;
+            border-color: var(--danger);
+            color: var(--danger);
         }
-
         .btn-sm {
-            padding: 6px 12px;
+            padding: 4px 10px;
             font-size: 12px;
-            border-radius: var(--radius-sm);
         }
-        .btn-sm i { font-size: 12px; }
-
-        .btn-outline {
+        .btn-text {
+            border: none;
             background: transparent;
-            border: 2px solid var(--primary);
-            color: var(--primary);
+            color: var(--text-secondary);
+            padding: 4px 8px;
         }
-        .btn-outline:hover {
-            background: var(--gradient);
-            color: #fff;
-            border-color: transparent;
+        .btn-text:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+        .btn-text.btn-danger-text {
+            color: var(--text-muted);
+        }
+        .btn-text.btn-danger-text:hover {
+            background: #fef2f2;
+            color: var(--danger);
         }
 
         .upload-area {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 2px dashed rgba(0,0,0,0.12);
+            background: #fafafa;
+            border: 2px dashed #ddd;
             border-radius: var(--radius-lg);
-            padding: 56px 24px;
+            padding: 48px 24px;
             text-align: center;
             transition: var(--transition);
             cursor: pointer;
+            margin-bottom: 20px;
         }
         .upload-area:hover {
             border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.04);
+            background: var(--primary-light);
         }
         .upload-area.dragover {
             border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.08);
+            background: var(--primary-light);
             border-style: solid;
-            transform: scale(1.01);
         }
-        .upload-icon {
-            font-size: 56px;
-            color: var(--text-muted);
-            margin-bottom: 16px;
+        .upload-area .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: var(--transition);
         }
-        .upload-area:hover .upload-icon {
+        .upload-area .upload-icon i {
+            font-size: 28px;
             color: var(--primary);
-            transform: translateY(-4px);
+        }
+        .upload-area:hover .upload-icon {
+            transform: scale(1.05);
         }
         .upload-text {
-            font-size: 17px;
-            margin-bottom: 6px;
+            font-size: 16px;
             font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
         }
         .upload-subtext {
             color: var(--text-muted);
-            margin-bottom: 20px;
-            font-size: 14px;
+            font-size: 13px;
+            margin-bottom: 16px;
         }
         .upload-options {
             display: flex;
             justify-content: center;
-            gap: 12px;
-            margin-top: 12px;
+            gap: 10px;
         }
         #file-input {
             display: none;
         }
 
         .files-section {
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: var(--bg-white);
             border-radius: var(--radius-lg);
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
         .section-header {
-            padding: 18px 24px;
+            padding: 14px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
         }
         .section-header h2 {
-            color: var(--text-primary);
-            font-size: 16px;
+            font-size: 15px;
+            font-weight: 600;
             margin: 0;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-weight: 700;
+            gap: 8px;
+            color: var(--text-primary);
         }
         .section-header h2 i {
             color: var(--primary);
@@ -616,7 +585,7 @@
         .section-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
 
@@ -631,60 +600,65 @@
         .file-item {
             display: flex;
             align-items: center;
-            padding: 14px 24px;
+            padding: 12px 20px;
             border-bottom: 1px solid var(--border-light);
             transition: var(--transition);
-            cursor: pointer;
-            animation: fileEnter 0.35s ease both;
+            cursor: default;
+            animation: fadeInUp 0.3s ease both;
         }
         .file-item:nth-child(1) { animation-delay: 0s; }
         .file-item:nth-child(2) { animation-delay: 0.04s; }
         .file-item:nth-child(3) { animation-delay: 0.08s; }
         .file-item:nth-child(4) { animation-delay: 0.12s; }
         .file-item:nth-child(5) { animation-delay: 0.16s; }
-        .file-item:nth-child(6) { animation-delay: 0.2s; }
-        .file-item:nth-child(7) { animation-delay: 0.24s; }
-        .file-item:nth-child(8) { animation-delay: 0.28s; }
-        .file-item:nth-child(9) { animation-delay: 0.32s; }
-        .file-item:nth-child(n+10) { animation-delay: 0.36s; }
+        .file-item:nth-child(n+6) { animation-delay: 0.2s; }
         .file-item:hover {
-            background: rgba(99, 102, 241, 0.04);
+            background: #fafafa;
         }
         .file-item.selected {
-            background: rgba(99, 102, 241, 0.08);
-            border-left: 3px solid var(--primary);
+            background: var(--primary-light);
         }
 
         .file-checkbox {
-            margin-right: 16px;
-            width: 18px;
-            height: 18px;
+            margin-right: 14px;
+            width: 16px;
+            height: 16px;
             accent-color: var(--primary);
             cursor: pointer;
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            flex: 1;
-            min-width: 0;
-        }
-        .file-icon {
-            font-size: 24px;
-            color: var(--primary);
-            width: 36px;
-            text-align: center;
             flex-shrink: 0;
         }
-        .file-details {
+
+        .file-thumb {
+            width: 40px;
+            height: 40px;
+            margin-right: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            flex-shrink: 0;
+            font-size: 22px;
+        }
+        .file-thumb.image { color: #10b981; background: #ecfdf5; }
+        .file-thumb.pdf { color: #ef4444; background: #fef2f2; }
+        .file-thumb.doc { color: #3b82f6; background: #eff6ff; }
+        .file-thumb.excel { color: #10b981; background: #ecfdf5; }
+        .file-thumb.ppt { color: #f59e0b; background: #fffbeb; }
+        .file-thumb.zip { color: #8b5cf6; background: #f5f3ff; }
+        .file-thumb.audio { color: #ec4899; background: #fdf2f8; }
+        .file-thumb.video { color: #6366f1; background: #eef2ff; }
+        .file-thumb.code { color: #14b8a6; background: #f0fdfa; }
+        .file-thumb.text { color: #64748b; background: #f8fafc; }
+        .file-thumb.default { color: var(--text-muted); background: var(--border); }
+
+        .file-info {
             flex: 1;
             min-width: 0;
         }
-        .file-details h3 {
+        .file-name {
             font-size: 14px;
-            margin-bottom: 3px;
-            font-weight: 600;
+            font-weight: 500;
+            margin-bottom: 2px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -693,14 +667,15 @@
             font-size: 12px;
             color: var(--text-muted);
             display: flex;
-            gap: 16px;
+            gap: 12px;
         }
         .file-actions {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             opacity: 0;
             transition: var(--transition);
+            flex-shrink: 0;
         }
         .file-item:hover .file-actions {
             opacity: 1;
@@ -711,49 +686,58 @@
             overflow-y: auto;
             padding: 20px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 16px;
         }
         .file-grid-item {
-            background: rgba(255,255,255,0.6);
+            background: var(--bg-white);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 20px 16px;
+            padding: 20px 12px 14px;
             text-align: center;
             transition: var(--transition);
             cursor: pointer;
             position: relative;
-            animation: fileEnter 0.35s ease both;
+            animation: fadeInUp 0.3s ease both;
         }
         .file-grid-item:nth-child(1) { animation-delay: 0s; }
         .file-grid-item:nth-child(2) { animation-delay: 0.05s; }
         .file-grid-item:nth-child(3) { animation-delay: 0.1s; }
         .file-grid-item:nth-child(4) { animation-delay: 0.15s; }
-        .file-grid-item:nth-child(5) { animation-delay: 0.2s; }
-        .file-grid-item:nth-child(n+6) { animation-delay: 0.25s; }
+        .file-grid-item:nth-child(n+5) { animation-delay: 0.2s; }
         .file-grid-item:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--primary-light);
+            border-color: #ddd;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .file-grid-item.selected {
             border-color: var(--primary);
-            background: rgba(99, 102, 241, 0.06);
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+            background: var(--primary-light);
         }
-        .file-grid-icon {
-            font-size: 40px;
-            color: var(--primary);
-            margin-bottom: 12px;
-            transition: var(--transition);
+        .file-grid-thumb {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+            font-size: 28px;
         }
-        .file-grid-item:hover .file-grid-icon {
-            transform: scale(1.1);
-        }
+        .file-grid-thumb.image { color: #10b981; background: #ecfdf5; }
+        .file-grid-thumb.pdf { color: #ef4444; background: #fef2f2; }
+        .file-grid-thumb.doc { color: #3b82f6; background: #eff6ff; }
+        .file-grid-thumb.excel { color: #10b981; background: #ecfdf5; }
+        .file-grid-thumb.ppt { color: #f59e0b; background: #fffbeb; }
+        .file-grid-thumb.zip { color: #8b5cf6; background: #f5f3ff; }
+        .file-grid-thumb.audio { color: #ec4899; background: #fdf2f8; }
+        .file-grid-thumb.video { color: #6366f1; background: #eef2ff; }
+        .file-grid-thumb.code { color: #14b8a6; background: #f0fdfa; }
+        .file-grid-thumb.text { color: #64748b; background: #f8fafc; }
+        .file-grid-thumb.default { color: var(--text-muted); background: var(--border); }
         .file-grid-name {
             font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 6px;
+            font-weight: 500;
+            margin-bottom: 4px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -764,19 +748,21 @@
         }
         .file-grid-actions {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: 6px;
+            right: 6px;
             display: flex;
-            gap: 4px;
+            gap: 2px;
             opacity: 0;
             transition: var(--transition);
         }
         .file-grid-item:hover .file-grid-actions {
             opacity: 1;
         }
-        .file-grid-actions .btn-sm {
-            padding: 4px 8px;
+        .file-grid-actions .btn {
+            padding: 3px 6px;
             font-size: 11px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid var(--border);
         }
 
         .empty-state {
@@ -785,53 +771,52 @@
             color: var(--text-muted);
         }
         .empty-state i {
-            font-size: 56px;
-            margin-bottom: 16px;
-            color: var(--border);
-            animation: float 3s ease-in-out infinite;
+            font-size: 48px;
+            margin-bottom: 12px;
+            color: #ddd;
         }
         .empty-state h3 {
-            font-size: 18px;
-            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: 500;
             color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .empty-state p {
+            font-size: 13px;
+            color: var(--text-muted);
         }
 
         .progress-bar {
             width: 100%;
-            height: 6px;
-            background: rgba(0,0,0,0.06);
-            border-radius: 3px;
-            margin-top: 20px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 16px;
             overflow: hidden;
             display: none;
-            position: relative;
         }
         .progress-fill {
             height: 100%;
-            background: var(--gradient);
+            background: var(--primary);
             width: 0%;
             transition: width 0.3s ease;
+            border-radius: 2px;
             position: relative;
-            border-radius: 3px;
         }
         .progress-fill::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 1.5s infinite;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.2s infinite;
         }
         .progress-fill::after {
             content: attr(data-speed);
             position: absolute;
-            top: 12px;
+            top: 10px;
             right: 0;
             font-size: 12px;
             color: var(--text-secondary);
-            background: var(--bg-card);
-            padding: 2px 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
             white-space: nowrap;
             font-weight: 500;
         }
@@ -843,32 +828,25 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.45);
             z-index: 1000;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            animation: fadeIn 0.25s ease;
+            animation: fadeIn 0.2s ease;
         }
-        .modal.show {
-            display: flex;
-        }
+        .modal.show { display: flex; }
         .modal-content {
-            background: var(--bg-card);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            padding: 32px;
-            border-radius: var(--radius-xl);
+            background: var(--bg-white);
+            padding: 28px 32px;
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
-            border: 1px solid var(--border-light);
             width: 90%;
             max-width: 420px;
-            animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: scaleIn 0.25s ease;
         }
         .modal-content.large {
-            max-width: 800px;
+            max-width: 760px;
             max-height: 80vh;
             overflow: hidden;
         }
@@ -877,25 +855,21 @@
             overflow: auto;
         }
         .modal-header {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .modal-header h2 {
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 0;
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
         }
         .modal-close {
-            background: rgba(0,0,0,0.05);
+            background: transparent;
             border: none;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             font-size: 18px;
             cursor: pointer;
@@ -906,34 +880,30 @@
             justify-content: center;
         }
         .modal-close:hover {
-            background: rgba(0,0,0,0.1);
+            background: var(--border);
             color: var(--text-primary);
         }
-        .modal-body {
-            margin-bottom: 20px;
-        }
+        .modal-body { margin-bottom: 18px; }
         .modal-footer {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             justify-content: flex-end;
         }
 
         .toast {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            padding: 12px 24px;
-            background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 24px;
+            background: var(--text-primary);
             border-radius: var(--radius);
             box-shadow: var(--shadow-lg);
-            color: var(--text-primary);
+            color: #fff;
             font-size: 14px;
             font-weight: 500;
             z-index: 10000;
-            animation: slideInRight 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: toastIn 0.3s ease;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -943,81 +913,43 @@
             font-size: 16px;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.92) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        @keyframes fileEnter {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(40px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-12px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
         @media (max-width: 1200px) {
-            .sidebar { width: 220px; }
-            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
         }
 
         @media (max-width: 768px) {
-            .container { padding: 12px; }
-            .main-layout { flex-direction: column; }
             .sidebar {
-                width: 100%;
-                order: 2;
-                position: static;
+                width: 200px;
+                transform: translateX(-100%);
             }
-            .main-content { order: 1; }
-            .top-bar { flex-direction: column; align-items: flex-start; }
-            .top-bar-right { width: 100%; justify-content: space-between; }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .top-bar { padding: 0 16px; }
+            .content-body { padding: 16px; }
             .toolbar { flex-direction: column; align-items: flex-start; }
-            .toolbar-left, .toolbar-right { width: 100%; justify-content: space-between; }
-            .upload-area { padding: 36px 16px; }
-            .file-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-                padding: 12px 16px;
-            }
-            .file-actions { opacity: 1; align-self: flex-end; }
-            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-            .network-status { position: static; margin-bottom: 8px; }
+            .toolbar-left, .toolbar-right { width: 100%; }
+            .toolbar-right { justify-content: flex-end; }
+            .upload-area { padding: 32px 16px; }
+            .file-item { padding: 10px 14px; }
+            .file-actions { opacity: 1; }
+            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+            .file-grid-item { padding: 14px 8px; }
+            .file-grid-thumb { width: 44px; height: 44px; font-size: 22px; }
             .search-box input { width: 140px; }
-            .search-box input:focus { width: 180px; }
+            .search-box input:focus { width: 160px; }
+            .network-status { display: none; }
         }
 
         @media (max-width: 480px) {
-            .login-container {
-                margin: 40px auto;
-                padding: 28px 20px;
-            }
-            .top-bar-left h1 { font-size: 18px; }
-            .file-meta { flex-direction: column; gap: 2px; }
-            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
-            .file-grid-icon { font-size: 32px; }
-            .file-grid-item { padding: 14px 10px; }
+            .login-container { margin: 40px auto; padding: 32px 20px; }
+            .content-body { padding: 12px; }
+            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
         }
     </style>
 </head>
@@ -1030,20 +962,22 @@
 
     <!-- 登录界面 -->
     <div id="login-container" class="login-container">
-        <h1><i class="fas fa-cloud-upload-alt"></i> 网盘登录</h1>
+        <div class="logo"><i class="fas fa-cloud-upload-alt"></i></div>
+        <h1>网盘登录</h1>
+        <p class="subtitle">输入密码访问你的个人网盘</p>
         <form class="login-form" onsubmit="handleLogin(event)">
             <div class="form-group">
                 <label for="login-password">密码</label>
-                <input type="password" id="login-password" required>
+                <input type="password" id="login-password" placeholder="请输入密码" required>
             </div>
-            <button type="submit" class="btn" style="width: 100%; padding: 12px;">
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 11px;">
                 <i class="fas fa-sign-in-alt"></i> 登录
             </button>
         </form>
         <div style="margin-top: 20px; text-align: center;">
-            <span>还没有账号？</span>
-            <button class="btn btn-outline" onclick="showRegisterModal()" style="width: 100%; margin-top: 10px;">
-                <i class="fas fa-user-plus"></i> 注册
+            <span style="color: var(--text-muted); font-size: 14px;">还没有账号？</span>
+            <button class="btn btn-text" onclick="showRegisterModal()" style="width: 100%; margin-top: 8px; justify-content: center; color: var(--primary); font-weight: 500;">
+                <i class="fas fa-user-plus"></i> 注册账号
             </button>
         </div>
     </div>
@@ -1075,48 +1009,31 @@
     </div>
 
     <!-- 主界面 -->
-    <div id="main-container" class="container" style="display: none;">
+    <div id="main-container" style="display: none;">
         <div class="main-layout">
             <!-- 侧边栏 -->
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <h3>导航</h3>
-                    <ul class="sidebar-menu">
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <a href="#" class="logo">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>网盘</span>
+                    </a>
+                </div>
+                <div class="sidebar-body">
+                    <button class="sidebar-upload-btn" onclick="document.getElementById('file-input').click()">
+                        <i class="fas fa-cloud-arrow-up"></i> 上传文件
+                    </button>
+                    <ul class="sidebar-nav" id="sidebar-nav">
                         <li><a href="#" class="active" data-view="personal"><i class="fas fa-folder"></i> 个人文件</a></li>
                         <li><a href="#" data-view="public"><i class="fas fa-users"></i> 公共空间</a></li>
                     </ul>
                 </div>
-                <div class="sidebar-section">
-                    <h3>空间使用</h3>
-                    <div class="space-info-card">
-                        <div class="space-info-item">
-                            <div class="space-info-header">
-                                <span class="space-info-label">个人空间</span>
-                                <span class="space-info-value" id="personal-space-value">0 MB / 2 GB</span>
-                            </div>
-                            <div class="space-bar">
-                                <div id="personal-space-fill" class="space-fill personal" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div class="space-info-item">
-                            <div class="space-info-header">
-                                <span class="space-info-label">公共空间</span>
-                                <span class="space-info-value" id="public-space-value">0 MB / 5 GB</span>
-                            </div>
-                            <div class="space-bar">
-                                <div id="public-space-fill" class="space-fill public" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div class="space-info-item">
-                            <div class="space-info-header">
-                                <span class="space-info-label">全局空间</span>
-                                <span class="space-info-value" id="global-space-value">0 MB / 10 GB</span>
-                            </div>
-                            <div class="space-bar">
-                                <div id="global-space-fill" class="space-fill global" style="width: 0%"></div>
-                            </div>
-                        </div>
+                <div class="sidebar-footer">
+                    <div class="sidebar-space-label">空间使用</div>
+                    <div class="sidebar-space-bar">
+                        <div id="sidebar-space-fill" class="sidebar-space-fill" style="width: 0%"></div>
                     </div>
+                    <div class="sidebar-space-text" id="sidebar-space-text">0 MB / 2 GB</div>
                 </div>
             </div>
 
@@ -1125,89 +1042,86 @@
                 <!-- 顶部操作栏 -->
                 <div class="top-bar">
                     <div class="top-bar-left">
-                        <h1><i class="fas fa-cloud-upload-alt"></i> 网盘</h1>
+                        <h1><i class="fas fa-folder-open"></i> <span id="section-title">个人文件</span></h1>
                         <span class="user-info">
-                            <i class="fas fa-user"></i>
+                            <i class="fas fa-user-circle"></i>
                             <span id="user-id">用户</span>
                             <span id="admin-badge" class="admin-badge" style="display: none;">管理员</span>
                         </span>
                     </div>
                     <div class="top-bar-right">
-                        <button class="btn btn-secondary" onclick="showChangePassword()">
-                            <i class="fas fa-key"></i> 修改密码
+                        <button class="btn btn-text" onclick="showChangePassword()" title="修改密码">
+                            <i class="fas fa-key"></i>
                         </button>
-                        <button class="btn btn-secondary" onclick="showLogin()">
-                            <i class="fas fa-sign-out-alt"></i> 切换登录
+                        <button class="btn btn-text" onclick="showLogin()" title="切换用户">
+                            <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- 工具栏 -->
-                <div class="toolbar">
-                    <div class="toolbar-left">
-                        <div class="view-toggle">
-                            <button class="active" data-view="list"><i class="fas fa-list"></i> 列表</button>
-                            <button data-view="grid"><i class="fas fa-th-large"></i> 图标</button>
+                <div class="content-body">
+                    <!-- 工具栏 -->
+                    <div class="toolbar">
+                        <div class="toolbar-left">
+                            <div class="view-toggle">
+                                <button class="active" data-view="list"><i class="fas fa-list"></i> 列表</button>
+                                <button data-view="grid"><i class="fas fa-th-large"></i> 图标</button>
+                            </div>
+                            <select id="sort-select" class="sort-select" onchange="sortFiles()">
+                                <option value="date-desc">按时间排序（最新优先）</option>
+                                <option value="date-asc">按时间排序（最早优先）</option>
+                                <option value="size-desc">按大小排序（从大到小）</option>
+                                <option value="size-asc">按大小排序（从小到大）</option>
+                                <option value="name-asc">按名称排序（A-Z）</option>
+                                <option value="name-desc">按名称排序（Z-A）</option>
+                            </select>
                         </div>
-                        <select id="sort-select" class="sort-select" onchange="sortFiles()">
-                            <option value="date-desc">按时间排序（最新优先）</option>
-                            <option value="date-asc">按时间排序（最早优先）</option>
-                            <option value="size-desc">按大小排序（从大到小）</option>
-                            <option value="size-asc">按大小排序（从小到大）</option>
-                            <option value="name-asc">按名称排序（A-Z）</option>
-                            <option value="name-desc">按名称排序（Z-A）</option>
-                        </select>
-                    </div>
-                    <div class="toolbar-right">
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="search-input" placeholder="搜索文件..." onkeyup="searchFiles()">
-                        </div>
-                        <button class="btn" onclick="document.getElementById('file-input').click()">
-                            <i class="fas fa-upload"></i> 上传文件
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 上传区域 -->
-                <div class="upload-area" id="upload-area">
-                    <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                    <h2 class="upload-text">拖拽文件到此处或点击上传</h2>
-                    <p class="upload-subtext">支持所有文件类型</p>
-                    <input type="file" id="file-input" multiple>
-                    <div class="upload-options">
-                        <button class="btn" onclick="document.getElementById('file-input').click()">
-                            <i class="fas fa-folder-open"></i> 选择文件
-                        </button>
-                        <button class="btn btn-outline" onclick="uploadToPublic()">
-                            <i class="fas fa-users"></i> 上传到公共空间
-                        </button>
-                    </div>
-                    <div class="progress-bar" id="progress-bar">
-                        <div class="progress-fill" id="progress-fill"></div>
-                    </div>
-                </div>
-
-                <!-- 文件列表区域 -->
-                <div class="files-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-folder-open"></i> <span id="section-title">个人文件</span></h2>
-                        <div class="section-actions">
+                        <div class="toolbar-right">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="search-input" placeholder="搜索文件..." onkeyup="searchFiles()">
+                            </div>
                             <button class="btn btn-sm" onclick="selectAllFiles()">
                                 <i class="fas fa-check-square"></i> 全选
                             </button>
                             <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()">
-                                <i class="fas fa-trash"></i> 删除
+                                <i class="fas fa-trash-alt"></i> 删除
                             </button>
                         </div>
                     </div>
-                    <div class="file-list-view" id="file-list-view">
-                        <ul id="file-list">
-                            <!-- 文件列表将通过JavaScript动态生成 -->
-                        </ul>
+
+                    <!-- 上传区域 -->
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+                        <div class="upload-text">拖拽文件到此处或点击上传</div>
+                        <div class="upload-subtext">支持所有文件类型，单文件最大 10GB</div>
+                        <input type="file" id="file-input" multiple>
+                        <div class="upload-options">
+                            <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                                <i class="fas fa-folder-open"></i> 选择文件
+                            </button>
+                            <button class="btn" onclick="uploadToPublic()">
+                                <i class="fas fa-users"></i> 上传到公共空间
+                            </button>
+                        </div>
+                        <div class="progress-bar" id="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
                     </div>
-                    <div class="file-grid-view" id="file-grid-view" style="display: none;">
-                        <!-- 图标视图将通过JavaScript动态生成 -->
+
+                    <!-- 文件列表区域 -->
+                    <div class="files-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-folder-open"></i> 全部文件</h2>
+                        </div>
+                        <div class="file-list-view" id="file-list-view">
+                            <ul id="file-list">
+                                <!-- 文件列表将通过JavaScript动态生成 -->
+                            </ul>
+                        </div>
+                        <div class="file-grid-view" id="file-grid-view" style="display: none;">
+                            <!-- 图标视图将通过JavaScript动态生成 -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1655,26 +1569,11 @@
             publicUsedSize = data.publicUsedSize || 0;
             publicMaxSize = data.publicMaxSize || 5 * 1024 * 1024 * 1024;
 
-            // 更新个人空间
-            const personalSpaceFill = document.getElementById('personal-space-fill');
-            const personalSpaceValue = document.getElementById('personal-space-value');
-            const personalPercentage = (usedSize / maxSize) * 100;
-            personalSpaceFill.style.width = `${personalPercentage}%`;
-            personalSpaceValue.textContent = `${formatFileSize(usedSize)} / ${formatFileSize(maxSize)}`;
-
-            // 更新公共空间
-            const publicSpaceFill = document.getElementById('public-space-fill');
-            const publicSpaceValue = document.getElementById('public-space-value');
-            const publicPercentage = (publicUsedSize / publicMaxSize) * 100;
-            publicSpaceFill.style.width = `${publicPercentage}%`;
-            publicSpaceValue.textContent = `${formatFileSize(publicUsedSize)} / ${formatFileSize(publicMaxSize)}`;
-
-            // 更新全局空间
-            const globalSpaceFill = document.getElementById('global-space-fill');
-            const globalSpaceValue = document.getElementById('global-space-value');
-            const globalPercentage = (globalUsedSize / globalMaxSize) * 100;
-            globalSpaceFill.style.width = `${globalPercentage}%`;
-            globalSpaceValue.textContent = `${formatFileSize(globalUsedSize)} / ${formatFileSize(globalMaxSize)}`;
+            const sidebarSpaceFill = document.getElementById('sidebar-space-fill');
+            const sidebarSpaceText = document.getElementById('sidebar-space-text');
+            const percentage = (usedSize / maxSize) * 100;
+            sidebarSpaceFill.style.width = `${percentage}%`;
+            sidebarSpaceText.textContent = `${formatFileSize(usedSize)} / ${formatFileSize(maxSize)}`;
         }
 
         // 初始化视图切换
@@ -1692,7 +1591,7 @@
 
         // 初始化侧边栏导航
         function initSidebarNavigation() {
-            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+            const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
             sidebarLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -1763,7 +1662,7 @@
             if (files.length === 0) {
                 fileList.innerHTML = `
                     <li class="empty-state">
-                        <i class="fas fa-folder"></i>
+                        <i class="fas fa-folder-open"></i>
                         <h3>暂无文件</h3>
                         <p>上传文件开始使用网盘</p>
                     </li>
@@ -1778,61 +1677,50 @@
                 li.className = 'file-item';
                 li.dataset.filename = file.filename;
                 
-                // 根据文件扩展名设置图标
+                // 根据文件扩展名设置图标和缩略图样式
+                const ext = file.name.split('.').pop().toLowerCase();
                 let fileIcon = 'fas fa-file';
-                if (file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') || file.name.endsWith('.png') || file.name.endsWith('.gif')) {
-                    fileIcon = 'fas fa-file-image';
-                } else if (file.name.endsWith('.pdf')) {
-                    fileIcon = 'fas fa-file-pdf';
-                } else if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
-                    fileIcon = 'fas fa-file-word';
-                } else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-                    fileIcon = 'fas fa-file-excel';
-                } else if (file.name.endsWith('.ppt') || file.name.endsWith('.pptx')) {
-                    fileIcon = 'fas fa-file-powerpoint';
-                } else if (file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z')) {
-                    fileIcon = 'fas fa-file-archive';
-                } else if (file.name.endsWith('.mp3') || file.name.endsWith('.wav') || file.name.endsWith('.flac')) {
-                    fileIcon = 'fas fa-file-audio';
-                } else if (file.name.endsWith('.mp4') || file.name.endsWith('.avi') || file.name.endsWith('.mov')) {
-                    fileIcon = 'fas fa-file-video';
-                } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-                    fileIcon = 'fas fa-file-alt';
-                } else if (file.name.endsWith('.js') || file.name.endsWith('.css') || file.name.endsWith('.html') || file.name.endsWith('.php')) {
-                    fileIcon = 'fas fa-file-code';
-                }
+                let thumbClass = 'default';
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) { fileIcon = 'fas fa-file-image'; thumbClass = 'image'; }
+                else if (ext === 'pdf') { fileIcon = 'fas fa-file-pdf'; thumbClass = 'pdf'; }
+                else if (['doc', 'docx'].includes(ext)) { fileIcon = 'fas fa-file-word'; thumbClass = 'doc'; }
+                else if (['xls', 'xlsx'].includes(ext)) { fileIcon = 'fas fa-file-excel'; thumbClass = 'excel'; }
+                else if (['ppt', 'pptx'].includes(ext)) { fileIcon = 'fas fa-file-powerpoint'; thumbClass = 'ppt'; }
+                else if (['zip', 'rar', '7z'].includes(ext)) { fileIcon = 'fas fa-file-archive'; thumbClass = 'zip'; }
+                else if (['mp3', 'wav', 'flac'].includes(ext)) { fileIcon = 'fas fa-file-audio'; thumbClass = 'audio'; }
+                else if (['mp4', 'avi', 'mov'].includes(ext)) { fileIcon = 'fas fa-file-video'; thumbClass = 'video'; }
+                else if (['js', 'css', 'html', 'php'].includes(ext)) { fileIcon = 'fas fa-file-code'; thumbClass = 'code'; }
+                else if (['txt', 'md'].includes(ext)) { fileIcon = 'fas fa-file-alt'; thumbClass = 'text'; }
 
                 // 构建下载链接
-                        let downloadUrl = `download.php?file=${encodeURIComponent(file.filename)}&password=${encodeURIComponent(currentPassword)}`;
-                        if (file.userDir) {
-                            downloadUrl += `&userDir=${encodeURIComponent(file.userDir)}`;
-                        }
+                let downloadUrl = `download.php?file=${encodeURIComponent(file.filename)}&password=${encodeURIComponent(currentPassword)}`;
+                if (file.userDir) {
+                    downloadUrl += `&userDir=${encodeURIComponent(file.userDir)}`;
+                }
 
                 li.innerHTML = `
                     <input type="checkbox" class="file-checkbox" onchange="toggleFileSelection('${file.filename}')">
+                    <div class="file-thumb ${thumbClass}"><i class="${fileIcon}"></i></div>
                     <div class="file-info">
-                        <div class="file-icon"><i class="${fileIcon}"></i></div>
-                        <div class="file-details">
-                            <h3>${file.name}</h3>
-                            <div class="file-meta">
-                                <span>${formatFileSize(file.size)}</span>
-                                <span>${formatDate(file.date)}</span>
-                                ${file.userDir ? `<span>用户: ${file.userDir.substring(0, 8)}...</span>` : ''}
-                            </div>
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-meta">
+                            <span>${formatFileSize(file.size)}</span>
+                            <span>${formatDate(file.date)}</span>
+                            ${file.userDir ? `<span>用户: ${file.userDir.substring(0, 8)}...</span>` : ''}
                         </div>
                     </div>
                     <div class="file-actions">
-                        <button class="btn btn-sm" onclick="previewFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})">
-                            <i class="fas fa-eye"></i> 预览
+                        <button class="btn btn-text" onclick="previewFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="预览">
+                            <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-sm" onclick="shareFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})">
-                            <i class="fas fa-share-alt"></i> 分享
+                        <button class="btn btn-text" onclick="shareFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="分享">
+                            <i class="fas fa-share-alt"></i>
                         </button>
-                        <a href="${downloadUrl}" class="btn btn-sm" download="${file.name}">
-                            <i class="fas fa-download"></i> 下载
+                        <a href="${downloadUrl}" class="btn btn-text" download="${file.name}" title="下载">
+                            <i class="fas fa-download"></i>
                         </a>
-                        <button class="btn btn-sm btn-danger" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})">
-                            <i class="fas fa-trash"></i> 删除
+                        <button class="btn btn-text btn-danger-text" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="删除">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
                 `;
@@ -1849,7 +1737,7 @@
             if (files.length === 0) {
                 fileGridView.innerHTML = `
                     <div class="empty-state">
-                        <i class="fas fa-folder"></i>
+                        <i class="fas fa-folder-open"></i>
                         <h3>暂无文件</h3>
                         <p>上传文件开始使用网盘</p>
                     </div>
@@ -1864,29 +1752,19 @@
                 div.className = 'file-grid-item';
                 div.dataset.filename = file.filename;
                 
-                // 根据文件扩展名设置图标
+                const ext = file.name.split('.').pop().toLowerCase();
                 let fileIcon = 'fas fa-file';
-                if (file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') || file.name.endsWith('.png') || file.name.endsWith('.gif')) {
-                    fileIcon = 'fas fa-file-image';
-                } else if (file.name.endsWith('.pdf')) {
-                    fileIcon = 'fas fa-file-pdf';
-                } else if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
-                    fileIcon = 'fas fa-file-word';
-                } else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-                    fileIcon = 'fas fa-file-excel';
-                } else if (file.name.endsWith('.ppt') || file.name.endsWith('.pptx')) {
-                    fileIcon = 'fas fa-file-powerpoint';
-                } else if (file.name.endsWith('.zip') || file.name.endsWith('.rar') || file.name.endsWith('.7z')) {
-                    fileIcon = 'fas fa-file-archive';
-                } else if (file.name.endsWith('.mp3') || file.name.endsWith('.wav') || file.name.endsWith('.flac')) {
-                    fileIcon = 'fas fa-file-audio';
-                } else if (file.name.endsWith('.mp4') || file.name.endsWith('.avi') || file.name.endsWith('.mov')) {
-                    fileIcon = 'fas fa-file-video';
-                } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-                    fileIcon = 'fas fa-file-alt';
-                } else if (file.name.endsWith('.js') || file.name.endsWith('.css') || file.name.endsWith('.html') || file.name.endsWith('.php')) {
-                    fileIcon = 'fas fa-file-code';
-                }
+                let thumbClass = 'default';
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) { fileIcon = 'fas fa-file-image'; thumbClass = 'image'; }
+                else if (ext === 'pdf') { fileIcon = 'fas fa-file-pdf'; thumbClass = 'pdf'; }
+                else if (['doc', 'docx'].includes(ext)) { fileIcon = 'fas fa-file-word'; thumbClass = 'doc'; }
+                else if (['xls', 'xlsx'].includes(ext)) { fileIcon = 'fas fa-file-excel'; thumbClass = 'excel'; }
+                else if (['ppt', 'pptx'].includes(ext)) { fileIcon = 'fas fa-file-powerpoint'; thumbClass = 'ppt'; }
+                else if (['zip', 'rar', '7z'].includes(ext)) { fileIcon = 'fas fa-file-archive'; thumbClass = 'zip'; }
+                else if (['mp3', 'wav', 'flac'].includes(ext)) { fileIcon = 'fas fa-file-audio'; thumbClass = 'audio'; }
+                else if (['mp4', 'avi', 'mov'].includes(ext)) { fileIcon = 'fas fa-file-video'; thumbClass = 'video'; }
+                else if (['js', 'css', 'html', 'php'].includes(ext)) { fileIcon = 'fas fa-file-code'; thumbClass = 'code'; }
+                else if (['txt', 'md'].includes(ext)) { fileIcon = 'fas fa-file-alt'; thumbClass = 'text'; }
 
                 // 构建下载链接
                 let downloadUrl = `download.php?file=${encodeURIComponent(file.filename)}&password=${encodeURIComponent(currentPassword)}`;
@@ -1896,18 +1774,12 @@
 
                 div.innerHTML = `
                     <div class="file-grid-actions">
-                        <input type="checkbox" class="file-checkbox" onchange="toggleFileSelection('${file.filename}')">
-                        <button class="btn btn-sm" onclick="previewFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm" onclick="shareFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-share-alt"></i>
-                        </button>
-                        <a href="${downloadUrl}" class="btn btn-sm" download="${file.name}">
-                            <i class="fas fa-download"></i>
-                        </a>
-                        <button class="btn btn-sm btn-danger" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})"><i class="fas fa-trash"></i>
-                        </button>
+                        <button class="btn" onclick="previewFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="预览"><i class="fas fa-eye"></i></button>
+                        <button class="btn" onclick="shareFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="分享"><i class="fas fa-share-alt"></i></button>
+                        <a href="${downloadUrl}" class="btn" download="${file.name}" title="下载"><i class="fas fa-download"></i></a>
+                        <button class="btn" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="删除"><i class="fas fa-trash-alt"></i></button>
                     </div>
-                    <div class="file-grid-icon"><i class="${fileIcon}"></i></div>
+                    <div class="file-grid-thumb ${thumbClass}"><i class="${fileIcon}"></i></div>
                     <div class="file-grid-name">${file.name}</div>
                     <div class="file-grid-meta">
                         <div>${formatFileSize(file.size)}</div>
