@@ -65,7 +65,7 @@ sudo chmod -R 775 /var/www/uploads
 ```nginx
 server {
     listen 80;
-    server_name pan.xxclub.me;
+    server_name your-domain.com;
 
     root /var/www/html/pan;
     index index.html;
@@ -89,7 +89,7 @@ server {
 ### 5. 启用站点
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/pan.xxclub.me /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/your-domain.com /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 ```
