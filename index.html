@@ -1203,7 +1203,6 @@
         let globalMaxSize = 10 * 1024 * 1024 * 1024; // 10GB
         let publicUsedSize = 0;
         let publicMaxSize = 5 * 1024 * 1024 * 1024; // 5GB
-        const adminPassword = 'admin'; // 管理员密码
         let isAdmin = false;
 
         // DOM元素
@@ -1223,11 +1222,9 @@
 
         // 初始化
         function init() {
-            // 检查本地存储中是否有密码
             const savedPassword = localStorage.getItem('panPassword');
             if (savedPassword) {
                 currentPassword = savedPassword;
-                isAdmin = (savedPassword === adminPassword);
                 showMain();
                 refreshFileList();
             } else {
@@ -1293,7 +1290,6 @@
                 return;
             }
             
-            // 验证用户是否注册
             fetch('upload.php', {
                 method: 'POST',
                 headers: {
@@ -1305,7 +1301,7 @@
             .then(data => {
                 if (data.success) {
                     currentPassword = password;
-                    isAdmin = (password === adminPassword);
+                    isAdmin = data.role === 'admin';
                     localStorage.setItem('panPassword', password);
                     showMain();
                     refreshFileList();
@@ -1335,7 +1331,6 @@
                 return;
             }
             
-            // 注册用户
             fetch('upload.php', {
                 method: 'POST',
                 headers: {
@@ -1346,9 +1341,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // 注册成功后自动登录
                     currentPassword = password;
-                    isAdmin = (password === adminPassword);
+                    isAdmin = data.role === 'admin';
                     localStorage.setItem('panPassword', password);
                     document.getElementById('register-modal').classList.remove('show');
                     showMain();
@@ -1710,10 +1704,10 @@
                 }
 
                 // 构建下载链接
-                let downloadUrl = `download.php?file=${encodeURIComponent(file.filename)}&password=${encodeURIComponent(currentPassword)}`;
-                if (file.userDir) {
-                    downloadUrl += `&userDir=${encodeURIComponent(file.userDir)}`;
-                }
+                        let downloadUrl = `download.php?file=${encodeURIComponent(file.filename)}&password=${encodeURIComponent(currentPassword)}`;
+                        if (file.userDir) {
+                            downloadUrl += `&userDir=${encodeURIComponent(file.userDir)}`;
+                        }
 
                 li.innerHTML = `
                     <input type="checkbox" class="file-checkbox" onchange="toggleFileSelection('${file.filename}')">
