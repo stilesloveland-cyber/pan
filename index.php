@@ -384,6 +384,6 @@
         <div class="lightbox-counter" id="lightbox-counter"></div>
     </div>
 
-    <script src="script.js?v=7"></script>
+    <script src="script.js?v=8"></script>
 </body>
 </html>
