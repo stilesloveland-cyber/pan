@@ -387,7 +387,8 @@ function refreshFileList() {
     let params = [];
     if (currentPassword) params.push('password=' + encodeURIComponent(currentPassword));
     if (currentPath) params.push('dir=' + encodeURIComponent(currentPath));
-    if (params.length) url += '?' + params.join('&');
+    params.push('_=' + Date.now()); // 防缓存
+    url += '?' + params.join('&');
 
     fetch(url).then(r => r.json()).then(data => {
         if (data.success) {
@@ -455,9 +456,10 @@ function initSidebarNavigation() {
             currentView = link.dataset.view;
             document.getElementById('section-title').textContent = currentView === 'personal' ? '个人文件' : '公共空间';
             document.getElementById('section-title-list').textContent = currentView === 'personal' ? '全部文件' : '公共空间';
-            currentPath = ''; folders = []; files = []; publicFiles = [];
-            if (currentView === 'personal') { refreshFileList(); } else { renderFiles(); }
-            updateSpaceDisplay();
+            currentPath = '';
+            document.getElementById('search-input').value = '';
+            // 强制刷新数据
+            refreshFileList();
             document.getElementById('search-input').value = ''; selectedFiles = []; updateSelectionUI();
             if (window.innerWidth <= 768) toggleSidebar();
         });
