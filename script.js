@@ -389,6 +389,7 @@ function refreshFileList() {
     if (currentPath) params.push('dir=' + encodeURIComponent(currentPath));
     params.push('_=' + Date.now()); // 防缓存
     url += '?' + params.join('&');
+    showSkeleton(); // 显示骨架屏
 
     fetch(url).then(r => r.json()).then(data => {
         if (data.success) {
@@ -628,6 +629,15 @@ function selectAllFiles() {
     updateSelectionUI();
 }
 
+// ========== ZIP 打包下载 ==========
+function downloadSelectedAsZip() {
+    if (selectedFiles.length === 0) { showToast('请先选择要下载的文件', true); return; }
+    let url = 'zip.php?files=' + selectedFiles.map(f => encodeURIComponent(f)).join(',');
+    if (currentPassword) url += '&password=' + encodeURIComponent(currentPassword);
+    if (currentPath && currentView === 'personal') url += '&dir=' + encodeURIComponent(currentPath);
+    window.location.href = url;
+}
+
 function deleteSelectedFiles() {
     if (selectedFiles.length === 0) { alert('请先选择要删除的文件'); return; }
     if (!confirm(`确定要删除选中的 ${selectedFiles.length} 个文件吗？`)) return;
@@ -657,6 +667,132 @@ function deleteFile(filename, userDir = null) {
             else { alert('删除失败：' + data.message); }
         }).catch(error => { console.error('删除失败:', error); alert('删除失败，请重试'); });
 }
+
+// ========== 点击行选中 ==========
+document.addEventListener('click', function(e) {
+    const item = e.target.closest('.file-item');
+    if (!item) return;
+    // 如果点击的是按钮、链接、复选框，不处理
+    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.file-checkbox')) return;
+    const cb = item.querySelector('.file-checkbox');
+    if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+});
+
+// ========== 右键菜单 ==========
+document.addEventListener('contextmenu', function(e) {
+    const item = e.target.closest('.file-item');
+    const gridItem = e.target.closest('.file-grid-item');
+    const target = item || gridItem;
+    if (!target) return;
+    
+    // 如果是返回上级或文件夹的右键，只显示有限操作
+    const isFolder = target.querySelector('.file-thumb.folder') || target.querySelector('.file-grid-thumb.folder');
+    const isParent = target.querySelector('.fa-level-up-alt');
+    if (isParent) return; // 返回上级不显示菜单
+    
+    e.preventDefault();
+    
+    const filename = target.dataset.filename;
+    if (!filename) return;
+    
+    // 构建菜单项
+    let html = '';
+    html += '<div class="context-menu-item" onclick="closeContextMenu();previewFile(\''+filename+'\')"><i class="fas fa-eye"></i> 预览</div>';
+    html += '<div class="context-menu-item" onclick="closeContextMenu();shareFile(\''+filename+'\')"><i class="fas fa-share-alt"></i> 分享</div>';
+    if (!isFolder) {
+        const du = target.querySelector('a[download]');
+        if (du) html += '<div class="context-menu-item" onclick="closeContextMenu();window.location.href=\''+du.getAttribute('href')+'\'"><i class="fas fa-download"></i> 下载</div>';
+    }
+    html += '<div class="context-menu-sep"></div>';
+    html += '<div class="context-menu-item" onclick="closeContextMenu();showRenameModal(\''+filename+'\', '+isFolder+')"><i class="fas fa-pen"></i> 重命名</div>';
+    html += '<div class="context-menu-item" onclick="closeContextMenu();showMoveModal(\''+filename+'\')"><i class="fas fa-folder-open"></i> 移动</div>';
+    html += '<div class="context-menu-sep"></div>';
+    html += '<div class="context-menu-item danger" onclick="closeContextMenu();deleteFile(\''+filename+'\')"><i class="fas fa-trash-alt"></i> 删除</div>';
+
+    const menu = document.getElementById('context-menu');
+    menu.innerHTML = html;
+    menu.style.display = 'block';
+    
+    // 防止超出视口
+    const x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 10);
+    const y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 10);
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+    menu.classList.add('show');
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.context-menu')) closeContextMenu();
+});
+
+function closeContextMenu() {
+    const menu = document.getElementById('context-menu');
+    menu.classList.remove('show');
+    menu.style.display = 'none';
+}
+
+// ========== 骨架屏 ==========
+function showSkeleton() {
+    const list = document.getElementById('file-list');
+    let html = '';
+    for (let i = 0; i < 8; i++) {
+        html += '<div class="skeleton-row"><div class="skeleton skeleton-icon"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line-sm"></div></div>';
+    }
+    list.innerHTML = html;
+}
+
+// ========== 图片灯箱 ==========
+let lightboxImages = [];
+let lightboxIndex = 0;
+
+function openLightbox(files, index) {
+    lightboxImages = files;
+    lightboxIndex = index;
+    document.getElementById('lightbox').classList.add('show');
+    updateLightbox();
+}
+
+function updateLightbox() {
+    const img = document.getElementById('lightbox-img');
+    const f = lightboxImages[lightboxIndex];
+    if (!f) return;
+    let url = `preview.php?file=${encodeURIComponent(f.filename)}`;
+    if (currentPassword) url += `&password=${encodeURIComponent(currentPassword)}`;
+    if (f.userDir) url += `&userDir=${encodeURIComponent(f.userDir)}`;
+    img.src = url;
+    img.classList.remove('zoomed');
+    const counter = document.getElementById('lightbox-counter');
+    counter.textContent = (lightboxIndex + 1) + ' / ' + lightboxImages.length;
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('show');
+    lightboxImages = [];
+}
+
+function prevLightbox() {
+    if (lightboxIndex > 0) { lightboxIndex--; updateLightbox(); }
+}
+function nextLightbox() {
+    if (lightboxIndex < lightboxImages.length - 1) { lightboxIndex++; updateLightbox(); }
+}
+function toggleLightboxZoom() {
+    document.getElementById('lightbox-img').classList.toggle('zoomed');
+}
+
+// 键盘导航
+document.addEventListener('keydown', function(e) {
+    if (!document.getElementById('lightbox').classList.contains('show')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') prevLightbox();
+    if (e.key === 'ArrowRight') nextLightbox();
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (confirm('确定要删除这张图片吗？')) {
+            const f = lightboxImages[lightboxIndex];
+            if (f) { deleteFile(f.filename); closeLightbox(); }
+        }
+    }
+});
 
 // ========== 工具函数 ==========
 function escHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
@@ -714,6 +850,17 @@ function previewFile(filename, userDir = null) {
     pc.innerHTML = '<div style="text-align:center;padding:40px"><i class="fas fa-spinner fa-pulse" style="font-size:32px;color:var(--text-muted)"></i><p style="margin-top:12px;color:var(--text-muted)">加载中...</p></div>';
     pm.classList.add('show');
     if (imageExts.includes(ext)) {
+        // 收集当前视图所有图片，用于灯箱翻页
+        const currentItems = currentView === 'personal' ? files : publicFiles;
+        const imgFiles = currentItems.filter(f => {
+            const e = f.name.split('.').pop().toLowerCase();
+            return imageExts.includes(e);
+        });
+        const idx = imgFiles.findIndex(f => f.filename === filename);
+        if (idx >= 0) {
+            openLightbox(imgFiles, idx);
+            return;
+        }
         pc.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:200px"><img src="${pu}" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:8px;"></div>`;
     } else if (videoExts.includes(ext)) {
         pc.innerHTML = `<video src="${pu}" controls style="max-width:100%;max-height:70vh;border-radius:8px;"></video>`;

@@ -106,9 +106,45 @@ $mimeTypes = [
 
 $mimeType = isset($mimeTypes[$fileExt]) ? $mimeTypes[$fileExt] : 'application/octet-stream';
 
-header('Content-Type: ' . $mimeType);
-header('Content-Disposition: inline; filename="' . addslashes($originalName) . '"');
-header('Content-Length: ' . filesize($realFilePath));
-header('X-Content-Type-Options: nosniff');
+$fileSize = filesize($realFilePath);
 
-readfile($realFilePath);
+// 视频/音频文件支持 HTTP Range（流式播放、拖动进度条）
+$isStreamable = in_array($fileExt, ['mp4', 'webm', 'avi', 'mov', 'mp3', 'wav', 'flac', 'ogg', 'aac']);
+
+if ($isStreamable && isset($_SERVER['HTTP_RANGE'])) {
+    preg_match('/bytes=(\d+)-(\d*)/', $_SERVER['HTTP_RANGE'], $matches);
+    $start = intval($matches[1]);
+    $end = isset($matches[2]) && $matches[2] !== '' ? intval($matches[2]) : $fileSize - 1;
+    if ($end >= $fileSize) $end = $fileSize - 1;
+    $length = $end - $start + 1;
+
+    header('HTTP/1.1 206 Partial Content');
+    header("Content-Range: bytes $start-$end/$fileSize");
+    header("Content-Length: $length");
+    header('Content-Type: ' . $mimeType);
+    header('Content-Disposition: inline; filename="' . addslashes($originalName) . '"');
+    header('X-Content-Type-Options: nosniff');
+    header('Accept-Ranges: bytes');
+    header('Cache-Control: no-cache');
+
+    $fp = fopen($realFilePath, 'rb');
+    fseek($fp, $start);
+    $chunkSize = 8192;
+    $sent = 0;
+    while ($sent < $length && !feof($fp)) {
+        $read = min($chunkSize, $length - $sent);
+        echo fread($fp, $read);
+        $sent += $read;
+        flush();
+    }
+    fclose($fp);
+} else {
+    header('Content-Type: ' . $mimeType);
+    header('Content-Disposition: inline; filename="' . addslashes($originalName) . '"');
+    header('Content-Length: ' . $fileSize);
+    header('X-Content-Type-Options: nosniff');
+    header('Accept-Ranges: bytes');
+    header('Cache-Control: no-cache');
+
+    readfile($realFilePath);
+}

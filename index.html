@@ -180,6 +180,9 @@
                                 <button class="btn btn-sm" onclick="showMoveSelectedModal()" id="btn-move-selected" title="移动到">
                                     <i class="fas fa-folder-open"></i> 移动到
                                 </button>
+                                <button class="btn btn-sm" onclick="downloadSelectedAsZip()" id="btn-zip-download" title="打包下载">
+                                    <i class="fas fa-file-archive"></i> 打包
+                                </button>
                                 <button class="btn btn-sm" onclick="selectAllFiles()">
                                     <i class="fas fa-check-square"></i> 全选
                                 </button>
@@ -361,6 +364,17 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="context-menu"></div>
+    <!-- 图片灯箱 -->
+    <div class="lightbox-overlay" id="lightbox">
+        <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+        <button class="lightbox-prev" onclick="prevLightbox()">&#10094;</button>
+        <img class="lightbox-img" id="lightbox-img" onclick="toggleLightboxZoom()">
+        <button class="lightbox-next" onclick="nextLightbox()">&#10095;</button>
+        <div class="lightbox-counter" id="lightbox-counter"></div>
     </div>
 
     <script src="script.js?v=2"></script>

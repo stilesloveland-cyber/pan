@@ -3,18 +3,7 @@
  * WPAN 个人网盘系统 - 公共函数库
  * 版本: 2.0 (会话重构版)
  */
-
-// ========== 路径常量 ==========
-define('BASE_UPLOAD_DIR', '/var/www/uploads/');
-define('USERS_FILE', BASE_UPLOAD_DIR . 'users.json');
-define('SHARE_DIR', BASE_UPLOAD_DIR . 'shares/');
-define('PUBLIC_DIR', BASE_UPLOAD_DIR . 'public/');
-define('CACHE_DIR', BASE_UPLOAD_DIR . 'cache/');
-
-// ========== 空间配额常量 ==========
-define('MAX_TOTAL_SIZE', 10 * 1024 * 1024 * 1024);
-define('MAX_USER_SIZE', 2 * 1024 * 1024 * 1024);
-define('MAX_PUBLIC_SIZE', 5 * 1024 * 1024 * 1024);
+require_once __DIR__ . '/config.php';
 
 // ========== 会话管理 ==========
 function initSystem() {

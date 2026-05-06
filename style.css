@@ -531,6 +531,86 @@ body {
 }
 .toast i { color: var(--success); font-size: 18px; }
 
+/* 右键菜单 */
+.context-menu {
+    display: none; position: fixed; z-index: 9999;
+    background: var(--bg-white); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    padding: 4px; min-width: 160px;
+    animation: scaleIn 0.15s ease;
+}
+.context-menu.show { display: block; }
+.context-menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; cursor: pointer; border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-secondary); transition: var(--transition);
+}
+.context-menu-item:hover { background: var(--primary-light); color: var(--primary); }
+.context-menu-item i { width: 16px; font-size: 14px; }
+.context-menu-item.danger:hover { background: #fef2f2; color: var(--danger); }
+.context-menu-sep { height: 1px; background: var(--border); margin: 4px 8px; }
+
+/* 骨架屏 */
+.skeleton {
+    background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.skeleton-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 20px; border-bottom: 1px solid var(--border-light);
+}
+.skeleton-icon {
+    width: 40px; height: 40px; border-radius: var(--radius-sm); flex-shrink: 0;
+}
+.skeleton-line {
+    height: 14px; flex: 1; border-radius: 4px;
+}
+.skeleton-line-sm {
+    width: 80px; height: 12px; border-radius: 4px;
+}
+
+/* 文件行可点击选中 */
+.file-item { cursor: pointer; }
+.file-checkbox { pointer-events: auto; } /* 复选框独立可点 */
+
+/* 图片灯箱 */
+.lightbox-overlay {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.9); justify-content: center; align-items: center;
+}
+.lightbox-overlay.show { display: flex; }
+.lightbox-img {
+    max-width: 90vw; max-height: 90vh; object-fit: contain;
+    border-radius: 8px; cursor: zoom-in;
+    transition: transform 0.3s ease;
+}
+.lightbox-img.zoomed { transform: scale(2); cursor: zoom-out; }
+.lightbox-close {
+    position: fixed; top: 20px; right: 30px;
+    color: #fff; font-size: 36px; cursor: pointer; z-index: 10001;
+    width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.3); border-radius: 50%; border: none;
+}
+.lightbox-prev, .lightbox-next {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    color: #fff; font-size: 40px; cursor: pointer; z-index: 10001;
+    padding: 20px; background: rgba(0,0,0,0.3); border: none;
+    border-radius: 8px;
+}
+.lightbox-prev { left: 20px; }
+.lightbox-next { right: 20px; }
+.lightbox-counter {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 14px; z-index: 10001;
+    background: rgba(0,0,0,0.5); padding: 6px 16px; border-radius: 50px;
+}
+
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
