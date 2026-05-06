@@ -331,6 +331,8 @@ function initFileInput() {
 
 function uploadToPublic() { fileInput.click(); fileInput.dataset.isPublic = 'true'; }
 
+let currentXhr = null; // 当前上传的 XHR，用于取消
+
 function uploadFiles(fileList, isPublic = false) {
     if (fileInput.dataset.isPublic === 'true') { isPublic = true; fileInput.dataset.isPublic = 'false'; }
     const formData = new FormData();
@@ -342,19 +344,32 @@ function uploadFiles(fileList, isPublic = false) {
     const progressSpeed = document.getElementById('progress-speed');
     const progressPercentText = document.getElementById('progress-percent-text');
     const progressPercent = document.getElementById('progress-percent');
+    const progressSize = document.getElementById('progress-size');
+    const progressFiles = document.getElementById('progress-files');
+    const cancelBtn = document.getElementById('btn-cancel-upload');
 
-    progressBar.classList.add('show');
-    progressFill.style.width = '0%';
-    progressSpeed.textContent = '0 MB/s';
-    progressPercentText.textContent = '0%';
-    progressPercent.textContent = '0%';
+    // 显示文件列表
+    let filesHtml = '';
+    for (let i = 0; i < fileList.length; i++) {
+        filesHtml += `<div class="progress-file-item"><span class="name"><i class="fas fa-file"></i> ${escHtml(fileList[i].name)}</span><span class="size">${formatFileSize(fileList[i].size)}</span></div>`;
+    }
+    progressFiles.innerHTML = filesHtml;
 
     let totalSize = 0;
     for (let i = 0; i < fileList.length; i++) totalSize += fileList[i].size;
 
+    progressBar.classList.add('show');
+    cancelBtn.style.display = 'inline-flex';
+    progressFill.style.width = '0%';
+    progressSpeed.textContent = '0 MB/s';
+    progressPercentText.textContent = '0%';
+    progressPercent.textContent = '0%';
+    progressSize.textContent = `0 B / ${formatFileSize(totalSize)}`;
+
     const startTime = Date.now();
     let uploadedSize = 0;
     const xhr = new XMLHttpRequest();
+    currentXhr = xhr;
 
     xhr.upload.addEventListener('progress', function(e) {
         if (e.lengthComputable) {
@@ -363,22 +378,40 @@ function uploadFiles(fileList, isPublic = false) {
             progressFill.style.width = `${pct}%`;
             progressPercent.textContent = `${Math.round(pct)}%`;
             progressPercentText.textContent = `${Math.round(pct)}%`;
+            progressSize.textContent = `${formatFileSize(uploadedSize)} / ${formatFileSize(totalSize)}`;
             const elapsedTime = (Date.now() - startTime) / 1000;
             if (elapsedTime > 0) progressSpeed.textContent = formatFileSize(uploadedSize / elapsedTime) + '/s';
         }
     });
 
     xhr.addEventListener('load', function() {
+        currentXhr = null;
         progressBar.classList.remove('show');
         try {
             const data = JSON.parse(xhr.responseText);
             if (data.success) { refreshFileList(); if (data.usedSize !== undefined) updateSpaceUsage(data); showToast('文件上传成功'); }
-            else { alert('上传失败：' + (data.message || '未知错误')); }
-        } catch (error) { alert('上传失败，请重试'); }
+            else { showToast('上传失败：' + (data.message || '未知错误'), true); }
+        } catch (error) { showToast('上传失败，请重试', true); }
     });
-    xhr.addEventListener('error', function() { alert('上传失败，请重试'); progressBar.classList.remove('show'); });
+    xhr.addEventListener('abort', function() {
+        currentXhr = null;
+        progressBar.classList.remove('show');
+        showToast('上传已取消', true);
+    });
+    xhr.addEventListener('error', function() {
+        currentXhr = null;
+        progressBar.classList.remove('show');
+        showToast('上传失败，请重试', true);
+    });
     xhr.open('POST', 'upload.php');
     xhr.send(formData);
+}
+
+function cancelUpload() {
+    if (currentXhr) {
+        currentXhr.abort();
+        currentXhr = null;
+    }
 }
 
 // 刷新文件列表
@@ -624,8 +657,18 @@ function updateSelectionUI() {
 }
 function selectAllFiles() {
     const cf = currentView === 'personal' ? files : publicFiles;
-    selectedFiles = cf.map(f => f.filename);
-    document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = true);
+    const allFilenames = cf.map(f => f.filename);
+    // 如果已经全选了，则取消全选；否则全选
+    const isAllSelected = allFilenames.length > 0 && allFilenames.every(f => selectedFiles.includes(f));
+    if (isAllSelected) {
+        selectedFiles = [];
+        document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.file-grid-item').forEach(el => el.classList.remove('selected'));
+    } else {
+        selectedFiles = [...allFilenames];
+        document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = true);
+        document.querySelectorAll('.file-grid-item').forEach(el => el.classList.add('selected'));
+    }
     updateSelectionUI();
 }
 
@@ -668,14 +711,26 @@ function deleteFile(filename, userDir = null) {
         }).catch(error => { console.error('删除失败:', error); alert('删除失败，请重试'); });
 }
 
-// ========== 点击行选中 ==========
+// ========== 点击行/格选中 ==========
 document.addEventListener('click', function(e) {
+    // 列表视图
     const item = e.target.closest('.file-item');
-    if (!item) return;
-    // 如果点击的是按钮、链接、复选框，不处理
-    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.file-checkbox')) return;
-    const cb = item.querySelector('.file-checkbox');
-    if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+    if (item && !e.target.closest('button') && !e.target.closest('a') && !e.target.closest('.file-checkbox')) {
+        const cb = item.querySelector('.file-checkbox');
+        if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+        return;
+    }
+    // 网格视图（仅文件可选中，文件夹点击导航）
+    const gridItem = e.target.closest('.file-grid-item');
+    if (gridItem && !e.target.closest('button') && !e.target.closest('a')) {
+        const filename = gridItem.dataset.filename;
+        if (!filename) return; // 文件夹或返回上级没有 filename
+        const isSel = gridItem.classList.toggle('selected');
+        const idx = selectedFiles.indexOf(filename);
+        if (isSel && idx === -1) selectedFiles.push(filename);
+        else if (!isSel && idx >= 0) selectedFiles.splice(idx, 1);
+        updateSelectionUI();
+    }
 });
 
 // ========== 右键菜单 ==========
