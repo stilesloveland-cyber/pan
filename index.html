@@ -820,6 +820,7 @@
             transition: var(--transition);
             cursor: default;
             animation: fadeInUp 0.3s ease both;
+            flex-wrap: nowrap;
         }
         .file-item:nth-child(1) { animation-delay: 0s; }
         .file-item:nth-child(2) { animation-delay: 0.04s; }
@@ -869,6 +870,7 @@
         .file-info {
             flex: 1;
             min-width: 0;
+            overflow: hidden;
         }
         .file-name {
             font-size: 14px;
@@ -877,6 +879,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            max-width: 100%;
         }
         .file-meta {
             font-size: 12px;
@@ -891,6 +894,7 @@
             opacity: 0;
             transition: var(--transition);
             flex-shrink: 0;
+            min-width: 0;
         }
         .file-item:hover .file-actions {
             opacity: 1;
@@ -1191,25 +1195,49 @@
                 display: block;
             }
             .main-content { margin-left: 0; }
-            .top-bar { padding: 0 16px; }
+            .top-bar { padding: 0 12px; }
             .top-bar-left h1 { font-size: 15px; }
             .user-info { font-size: 12px; padding: 3px 10px; }
-            .content-body { padding: 16px; }
-            .toolbar { flex-direction: column; align-items: flex-start; }
-            .toolbar-left, .toolbar-right { width: 100%; }
-            .toolbar-right { justify-content: flex-end; }
-            .upload-area { padding: 28px 16px; }
-            .upload-area .upload-icon { width: 52px; height: 52px; }
-            .upload-area .upload-icon i { font-size: 22px; }
-            .file-item { padding: 10px 14px; }
-            .file-actions { opacity: 1; }
-            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-            .file-grid-item { padding: 14px 8px; }
-            .file-grid-thumb { width: 44px; height: 44px; font-size: 22px; }
-            .search-box input { width: 120px; }
-            .search-box input:focus { width: 160px; }
+            .content-body { padding: 12px; }
+            .upload-area { padding: 24px 12px; }
+            .upload-area .upload-icon { width: 48px; height: 48px; }
+            .upload-area .upload-icon i { font-size: 20px; }
+            .upload-text { font-size: 14px; }
+            .upload-subtext { font-size: 12px; }
+            .upload-options { flex-direction: column; align-items: center; gap: 8px; }
+            .file-item { padding: 8px 10px; flex-wrap: nowrap; }
+            .file-checkbox { margin-right: 8px; }
+            .file-thumb { width: 32px; height: 32px; margin-right: 8px; font-size: 16px; }
+            .file-name { font-size: 12px; max-width: 120px; }
+            .file-meta { font-size: 10px; gap: 6px; flex-wrap: wrap; }
+            /* 手机端操作按钮变紧凑纯图标 */
+            .file-actions { opacity: 1; gap: 1px; }
+            .file-actions .btn-text { padding: 4px 5px; font-size: 11px; }
+            .file-actions .btn-text i { margin: 0; }
+            /* 手机端按钮纯图标更紧凑 */
+            .file-grid-view { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+            .file-grid-item { padding: 10px 6px; }
+            .file-grid-thumb { width: 36px; height: 36px; font-size: 18px; }
+            .file-grid-name { font-size: 11px; }
+            .file-grid-meta { font-size: 10px; }
+            .file-grid-actions { opacity: 1; }
+            .file-grid-actions .btn { padding: 2px 4px; font-size: 10px; }
+            .search-box input { width: 100px; font-size: 12px; }
+            .search-box input:focus { width: 130px; }
             .network-status { display: none; }
-            .login-container { padding: 36px 24px; border-radius: var(--radius-lg); }
+            .login-wrapper { padding: 12px; }
+            .login-container { padding: 28px 20px; border-radius: var(--radius-lg); margin: 0 10px; }
+            .breadcrumb { font-size: 12px !important; padding: 6px 10px; }
+            #file-actions-bar { gap: 3px; }
+            #file-actions-bar .btn-sm { padding: 3px 6px; font-size: 10px; }
+            #file-actions-bar .btn-sm i { margin-right: 2px; font-size: 10px; }
+            #file-actions-bar .view-toggle button { padding: 3px 6px; font-size: 10px; }
+            #file-actions-bar .search-box input { width: 80px !important; padding: 3px 6px 3px 22px !important; font-size: 10px !important; }
+            #file-actions-bar .search-box i { left: 7px; font-size: 10px; }
+            .section-header { padding: 10px 12px; }
+            .section-header h2 { font-size: 13px; }
+            .sort-bar { padding: 4px 12px; }
+            .sort-bar .sort-select { font-size: 11px; padding: 3px 8px; }
         }
 
         @media (max-width: 480px) {
@@ -2308,8 +2336,10 @@
                     link.classList.add('active');
                     currentView = link.dataset.view;
                     document.getElementById('section-title').textContent = currentView === 'personal' ? '个人文件' : '公共空间';
-                    // 切换视图时重置路径
+                    document.getElementById('section-title-list').textContent = currentView === 'personal' ? '全部文件' : '公共空间';
+                    // 切换视图时重置路径和文件夹
                     currentPath = '';
+                    folders = [];
                     renderFiles();
                     updateSpaceDisplay();
 
@@ -2424,24 +2454,25 @@
             fileListView.style.display = 'block';
             fileGridView.style.display = 'none';
 
-            // 合并文件夹和文件
+            // 合并文件夹和文件（仅个人视图显示文件夹）
             let allItems = [];
             
-            // 添加返回上级
-            if (currentPath && currentView === 'personal') {
-                allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
-            }
-            
-            // 添加文件夹
-            (folders || []).forEach(f => {
-                allItems.push({
-                    isDir: true,
-                    name: f.name,
-                    date: f.date || 0,
-                    size: 0,
-                    filename: f.name
+            if (currentView === 'personal') {
+                // 添加返回上级
+                if (currentPath) {
+                    allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
+                }
+                // 添加文件夹
+                (folders || []).forEach(f => {
+                    allItems.push({
+                        isDir: true,
+                        name: f.name,
+                        date: f.date || 0,
+                        size: 0,
+                        filename: f.name
+                    });
                 });
-            });
+            }
             
             // 添加文件
             (items || []).forEach(f => {
@@ -2572,15 +2603,17 @@
             fileListView.style.display = 'none';
             fileGridView.style.display = 'grid';
 
-            // 合并文件夹和文件
+            // 合并文件夹和文件（仅个人视图显示文件夹）
             let allItems = [];
             
-            if (currentPath && currentView === 'personal') {
-                allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
+            if (currentView === 'personal') {
+                if (currentPath) {
+                    allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
+                }
+                (folders || []).forEach(f => {
+                    allItems.push({ isDir: true, name: f.name, date: f.date || 0, size: 0, filename: f.name });
+                });
             }
-            (folders || []).forEach(f => {
-                allItems.push({ isDir: true, name: f.name, date: f.date || 0, size: 0, filename: f.name });
-            });
             (items || []).forEach(f => allItems.push(f));
             
             if (allItems.length === 0) {
