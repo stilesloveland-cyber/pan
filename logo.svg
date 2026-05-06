@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#19b955"/>
+      <stop offset="100%" style="stop-color:#0f9d43"/>
+    </linearGradient>
+    <linearGradient id="cloud" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#e8f8ee"/>
+    </linearGradient>
+  </defs>
+  <!-- 圆形背景 -->
+  <circle cx="100" cy="100" r="95" fill="url(#bg)" />
+  <!-- 云朵图标 -->
+  <g transform="translate(100,95)" fill="url(#cloud)">
+    <!-- 云朵主体 -->
+    <ellipse cx="-25" cy="5" rx="22" ry="18"/>
+    <ellipse cx="0" cy="-8" rx="28" ry="22"/>
+    <ellipse cx="25" cy="5" rx="22" ry="18"/>
+    <rect x="-28" y="-2" width="56" height="24" rx="5"/>
+  </g>
+  <!-- 上传箭头 -->
+  <g transform="translate(100,72)">
+    <path d="M -4,18 L 0,6 L 4,18" fill="none" stroke="#19b955" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 0,6 L 0,26" fill="none" stroke="#19b955" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- 无文字 -->
+</svg>
