@@ -250,6 +250,152 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
     exit;
 }
 
+// ========== 分片上传 - 接收单个分片 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'upload_chunk') {
+    set_time_limit(300);
+    $uploadId = isset($_POST['upload_id']) ? preg_replace('/[^a-zA-Z0-9_\-]/', '', $_POST['upload_id']) : '';
+    $chunkIndex = isset($_POST['chunk_index']) ? intval($_POST['chunk_index']) : 0;
+    $totalChunks = isset($_POST['total_chunks']) ? intval($_POST['total_chunks']) : 0;
+    $fileName = isset($_POST['file_name']) ? $_POST['file_name'] : '';
+    $fileSize = isset($_POST['file_size']) ? intval($_POST['file_size']) : 0;
+    $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
+
+    if (empty($uploadId) || empty($fileName) || !isset($_FILES['chunk'])) {
+        echo json_encode(['success' => false, 'message' => '参数不完整']);
+        exit;
+    }
+
+    // 仅在第一个分片检查空间配额
+    if ($chunkIndex === 0) {
+        $globalUsedSize = calculateGlobalSize();
+        $userUsedSize = $userDir ? calculateDirectorySize($userDir) : 0;
+        $publicUsedSize = calculateDirectorySize(PUBLIC_DIR);
+
+        if ($globalUsedSize + $fileSize > MAX_TOTAL_SIZE) {
+            echo json_encode(['success' => false, 'message' => '全局空间不足']);
+            exit;
+        }
+        if ($isPublic) {
+            if ($publicUsedSize + $fileSize > MAX_PUBLIC_SIZE) {
+                echo json_encode(['success' => false, 'message' => '公共空间不足']);
+                exit;
+            }
+        } else {
+            if ($userUsedSize + $fileSize > MAX_USER_SIZE) {
+                echo json_encode(['success' => false, 'message' => '个人空间不足']);
+                exit;
+            }
+        }
+    }
+
+    $chunkDir = CACHE_DIR . 'chunks/' . $uploadId . '/';
+    if (!file_exists($chunkDir)) {
+        mkdir($chunkDir, 0755, true);
+    }
+
+    $chunkFile = $chunkDir . $chunkIndex;
+    if (move_uploaded_file($_FILES['chunk']['tmp_name'], $chunkFile)) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => '分片写入失败']);
+    }
+    exit;
+}
+
+// ========== 分片上传 - 合并分片 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
+    set_time_limit(300);
+    $uploadId = isset($_POST['upload_id']) ? preg_replace('/[^a-zA-Z0-9_\-]/', '', $_POST['upload_id']) : '';
+    $totalChunks = isset($_POST['total_chunks']) ? intval($_POST['total_chunks']) : 0;
+    $fileName = isset($_POST['file_name']) ? $_POST['file_name'] : '';
+    $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
+
+    if (empty($uploadId) || empty($fileName) || $totalChunks === 0) {
+        echo json_encode(['success' => false, 'message' => '参数不完整']);
+        exit;
+    }
+
+    $chunkDir = CACHE_DIR . 'chunks/' . $uploadId . '/';
+    if (!is_dir($chunkDir)) {
+        echo json_encode(['success' => false, 'message' => '分片数据不存在']);
+        exit;
+    }
+
+    // 验证所有分片已上传
+    for ($i = 0; $i < $totalChunks; $i++) {
+        if (!file_exists($chunkDir . $i)) {
+            echo json_encode(['success' => false, 'message' => "分片 {$i} 缺失"]);
+            exit;
+        }
+    }
+
+    $uniqueName = uniqid() . '_' . $fileName;
+    if ($isPublic) {
+        $destination = PUBLIC_DIR . $uniqueName;
+    } else {
+        $destination = $currentDir . $uniqueName;
+    }
+
+    $targetDir = dirname($destination);
+    if (!file_exists($targetDir)) {
+        mkdir($targetDir, 0755, true);
+    }
+
+    // 合并所有分片
+    $fp = @fopen($destination, 'wb');
+    if (!$fp) {
+        echo json_encode(['success' => false, 'message' => '无法创建目标文件']);
+        exit;
+    }
+
+    for ($i = 0; $i < $totalChunks; $i++) {
+        $chunkFile = $chunkDir . $i;
+        $chunkData = file_get_contents($chunkFile);
+        fwrite($fp, $chunkData);
+        unlink($chunkFile); // 逐片删除以释放空间
+    }
+    fclose($fp);
+
+    // 清理分片目录
+    @rmdir($chunkDir);
+
+    clearSizeCache();
+
+    $userUsedSize = $userDir ? calculateDirectorySize($userDir) : 0;
+    $globalUsedSize = calculateGlobalSize();
+    $publicUsedSize = calculateDirectorySize(PUBLIC_DIR);
+
+    echo json_encode([
+        'success' => true,
+        'message' => '文件上传成功',
+        'files' => [$uniqueName],
+        'usedSize' => $userUsedSize,
+        'maxSize' => MAX_USER_SIZE,
+        'globalUsedSize' => $globalUsedSize,
+        'globalMaxSize' => MAX_TOTAL_SIZE,
+        'publicUsedSize' => $publicUsedSize,
+        'publicMaxSize' => MAX_PUBLIC_SIZE
+    ]);
+    exit;
+}
+
+// ========== 分片上传 - 取消/清理 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'cancel_chunks') {
+    $uploadId = isset($_POST['upload_id']) ? preg_replace('/[^a-zA-Z0-9_\-]/', '', $_POST['upload_id']) : '';
+    if (!empty($uploadId)) {
+        $chunkDir = CACHE_DIR . 'chunks/' . $uploadId . '/';
+        if (is_dir($chunkDir)) {
+            $files = scandir($chunkDir);
+            foreach ($files as $f) {
+                if ($f != '.' && $f != '..') unlink($chunkDir . $f);
+            }
+            @rmdir($chunkDir);
+        }
+    }
+    echo json_encode(['success' => true]);
+    exit;
+}
+
 // ========== 上传文件 ==========
 if (isset($_FILES['files'])) {
     // 上传大小限制由 Nginx 和 php.ini 控制，运行时 ini_set 无效

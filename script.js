@@ -331,15 +331,120 @@ function initFileInput() {
 
 function uploadToPublic() { fileInput.click(); fileInput.dataset.isPublic = 'true'; }
 
+const CHUNK_SIZE = 5 * 1024 * 1024; // 分片大小 5MB
 let currentXhr = null; // 当前上传的 XHR，用于取消
+let currentChunkUpload = null; // 当前分片上传的状态
+
+/**
+ * 分片上传大文件
+ */
+async function uploadFileInChunks(file, isPublic, progressCallbacks) {
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const uploadId = 'chunk_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const totalBytes = file.size;
+    let uploadedBytes = 0;
+    const { onProgress, onSpeed } = progressCallbacks;
+    const startTime = Date.now();
+
+    const state = { cancelled: false };
+    currentChunkUpload = state;
+
+    for (let i = 0; i < totalChunks; i++) {
+        if (state.cancelled) break;
+
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append('action', 'upload_chunk');
+        formData.append('upload_id', uploadId);
+        formData.append('chunk_index', i);
+        formData.append('total_chunks', totalChunks);
+        formData.append('file_name', file.name);
+        formData.append('file_size', file.size);
+        formData.append('is_public', isPublic);
+        if (currentPassword) formData.append('password', currentPassword);
+        if (currentPath && !isPublic) formData.append('dir', currentPath);
+        formData.append('chunk', chunk);
+
+        // 上传分片（最多重试3次）
+        let retries = 3;
+        let success = false;
+        while (retries > 0 && !success && !state.cancelled) {
+            try {
+                await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    currentXhr = xhr;
+                    xhr.onload = function () {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            if (data.success) { success = true; resolve(); }
+                            else reject(new Error(data.message || '分片上传失败'));
+                        } catch (e) { reject(e); }
+                    };
+                    xhr.onerror = () => reject(new Error('网络错误'));
+                    xhr.onabort = () => reject(new Error('已取消'));
+                    xhr.open('POST', 'upload.php');
+                    xhr.send(formData);
+                });
+            } catch (e) {
+                retries--;
+                if (retries === 0) throw e;
+                await new Promise(r => setTimeout(r, 1000)); // 重试前等待1秒
+            }
+        }
+
+        if (state.cancelled) break;
+
+        uploadedBytes += chunk.size;
+        const pct = Math.min((uploadedBytes / totalBytes) * 100, 100);
+        onProgress(pct, uploadedBytes, totalBytes);
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (elapsed > 0) onSpeed(formatFileSize(uploadedBytes / elapsed) + '/s');
+    }
+
+    currentXhr = null;
+
+    if (state.cancelled) {
+        // 通知服务器清理分片
+        try {
+            await fetch('upload.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'action=cancel_chunks&upload_id=' + encodeURIComponent(uploadId)
+            });
+        } catch (e) { /* ignore */ }
+        currentChunkUpload = null;
+        return null;
+    }
+
+    // 合并分片
+    onProgress(99, totalBytes, totalBytes);
+    onSpeed('合并中...');
+
+    const mergeFormData = new FormData();
+    mergeFormData.append('action', 'merge_chunks');
+    mergeFormData.append('upload_id', uploadId);
+    mergeFormData.append('total_chunks', totalChunks);
+    mergeFormData.append('file_name', file.name);
+    mergeFormData.append('is_public', isPublic);
+    if (currentPassword) mergeFormData.append('password', currentPassword);
+    if (currentPath && !isPublic) mergeFormData.append('dir', currentPath);
+
+    try {
+        const resp = await fetch('upload.php', { method: 'POST', body: mergeFormData });
+        const data = await resp.json();
+        currentChunkUpload = null;
+        return data;
+    } catch (e) {
+        currentChunkUpload = null;
+        throw e;
+    }
+}
 
 function uploadFiles(fileList, isPublic = false) {
     if (fileInput.dataset.isPublic === 'true') { isPublic = true; fileInput.dataset.isPublic = 'false'; }
-    const formData = new FormData();
-    for (let i = 0; i < fileList.length; i++) formData.append('files[]', fileList[i]);
-    formData.append('is_public', isPublic);
-    if (currentPassword) formData.append('password', currentPassword);
-    if (currentPath && !isPublic) formData.append('dir', currentPath);
 
     const progressSpeed = document.getElementById('progress-speed');
     const progressPercentText = document.getElementById('progress-percent-text');
@@ -351,7 +456,9 @@ function uploadFiles(fileList, isPublic = false) {
     // 显示文件列表
     let filesHtml = '';
     for (let i = 0; i < fileList.length; i++) {
-        filesHtml += `<div class="progress-file-item"><span class="name"><i class="fas fa-file"></i> ${escHtml(fileList[i].name)}</span><span class="size">${formatFileSize(fileList[i].size)}</span></div>`;
+        const icon = fileList[i].size >= CHUNK_SIZE ? '<i class="fas fa-file"></i>' : '<i class="fas fa-file"></i>';
+        const tag = fileList[i].size >= CHUNK_SIZE ? ' <span class="chunk-badge">分片</span>' : '';
+        filesHtml += `<div class="progress-file-item"><span class="name">${icon} ${escHtml(fileList[i].name)}${tag}</span><span class="size">${formatFileSize(fileList[i].size)}</span></div>`;
     }
     progressFiles.innerHTML = filesHtml;
 
@@ -368,46 +475,139 @@ function uploadFiles(fileList, isPublic = false) {
 
     const startTime = Date.now();
     let uploadedSize = 0;
-    const xhr = new XMLHttpRequest();
-    currentXhr = xhr;
 
-    xhr.upload.addEventListener('progress', function(e) {
-        if (e.lengthComputable) {
-            uploadedSize = e.loaded;
-            const pct = Math.min((uploadedSize / totalSize) * 100, 100);
-            progressFill.style.width = `${pct}%`;
-            progressPercent.textContent = `${Math.round(pct)}%`;
-            progressPercentText.textContent = `${Math.round(pct)}%`;
-            progressSize.textContent = `${formatFileSize(uploadedSize)} / ${formatFileSize(totalSize)}`;
-            const elapsedTime = (Date.now() - startTime) / 1000;
-            if (elapsedTime > 0) progressSpeed.textContent = formatFileSize(uploadedSize / elapsedTime) + '/s';
+    function updateProgress(pct, loaded, total) {
+        uploadedSize = loaded || uploadedSize;
+        const p = pct !== undefined ? pct : (total ? Math.min((uploadedSize / total) * 100, 100) : 0);
+        progressFill.style.width = `${p}%`;
+        progressPercent.textContent = `${Math.round(p)}%`;
+        progressPercentText.textContent = `${Math.round(p)}%`;
+        progressSize.textContent = `${formatFileSize(uploadedSize)} / ${formatFileSize(total || totalSize)}`;
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (elapsed > 0 && uploadedSize > 0) progressSpeed.textContent = formatFileSize(uploadedSize / elapsed) + '/s';
+    }
+
+    function finishUpload(data) {
+        progressBar.classList.remove('show');
+        currentXhr = null;
+        if (data && data.success) {
+            refreshFileList();
+            if (data.usedSize !== undefined) updateSpaceUsage(data);
+            showToast('文件上传成功');
+        } else {
+            showToast('上传失败：' + (data?.message || '未知错误'), true);
         }
-    });
+    }
 
-    xhr.addEventListener('load', function() {
-        currentXhr = null;
+    function handleError(msg) {
         progressBar.classList.remove('show');
-        try {
-            const data = JSON.parse(xhr.responseText);
-            if (data.success) { refreshFileList(); if (data.usedSize !== undefined) updateSpaceUsage(data); showToast('文件上传成功'); }
-            else { showToast('上传失败：' + (data.message || '未知错误'), true); }
-        } catch (error) { showToast('上传失败，请重试', true); }
-    });
-    xhr.addEventListener('abort', function() {
         currentXhr = null;
-        progressBar.classList.remove('show');
-        showToast('上传已取消', true);
-    });
-    xhr.addEventListener('error', function() {
-        currentXhr = null;
-        progressBar.classList.remove('show');
-        showToast('上传失败，请重试', true);
-    });
-    xhr.open('POST', 'upload.php');
-    xhr.send(formData);
+        showToast(msg || '上传失败，请重试', true);
+    }
+
+    // 检查是否有大文件（>= 5MB）
+    const hasLargeFile = Array.from(fileList).some(f => f.size >= CHUNK_SIZE);
+
+    if (!hasLargeFile) {
+        // 所有文件都小，使用原始单次上传
+        const formData = new FormData();
+        for (let i = 0; i < fileList.length; i++) formData.append('files[]', fileList[i]);
+        formData.append('is_public', isPublic);
+        if (currentPassword) formData.append('password', currentPassword);
+        if (currentPath && !isPublic) formData.append('dir', currentPath);
+
+        const xhr = new XMLHttpRequest();
+        currentXhr = xhr;
+
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                uploadedSize = e.loaded;
+                updateProgress(null, e.loaded, e.total);
+            }
+        });
+
+        xhr.addEventListener('load', function() {
+            try { finishUpload(JSON.parse(xhr.responseText)); }
+            catch (e) { handleError(); }
+        });
+        xhr.addEventListener('abort', function() {
+            currentXhr = null; progressBar.classList.remove('show');
+            showToast('上传已取消', true);
+        });
+        xhr.addEventListener('error', function() { handleError(); });
+        xhr.open('POST', 'upload.php');
+        xhr.send(formData);
+    } else {
+        // 有大文件，使用分片上传（逐文件处理）
+        (async () => {
+            currentXhr = null;
+            let allSuccess = true;
+            let lastData = null;
+
+            for (let i = 0; i < fileList.length; i++) {
+                const file = fileList[i];
+                if (file.size >= CHUNK_SIZE) {
+                    // 分片上传大文件
+                    try {
+                        progressSpeed.textContent = '准备分片...';
+                        const data = await uploadFileInChunks(file, isPublic, {
+                            onProgress: (pct, loaded, total) => {
+                                // 加上之前已上传的文件大小
+                                updateProgress(pct, uploadedSize + loaded, totalSize);
+                            },
+                            onSpeed: (speed) => { progressSpeed.textContent = speed; }
+                        });
+                        if (data === null) {
+                            // 已取消
+                            progressBar.classList.remove('show');
+                            showToast('上传已取消', true);
+                            return;
+                        }
+                        uploadedSize += file.size;
+                        lastData = data;
+                        if (!data.success) { allSuccess = false; break; }
+                    } catch (e) {
+                        allSuccess = false;
+                        lastData = { success: false, message: e.message || '大文件上传失败' };
+                        break;
+                    }
+                } else {
+                    // 小文件逐个上传
+                    const formData = new FormData();
+                    formData.append('files[]', file);
+                    formData.append('is_public', isPublic);
+                    if (currentPassword) formData.append('password', currentPassword);
+                    if (currentPath && !isPublic) formData.append('dir', currentPath);
+
+                    try {
+                        const resp = await fetch('upload.php', { method: 'POST', body: formData });
+                        const data = await resp.json();
+                        uploadedSize += file.size;
+                        updateProgress(null, uploadedSize, totalSize);
+                        lastData = data;
+                        if (!data.success) { allSuccess = false; break; }
+                    } catch (e) {
+                        allSuccess = false;
+                        lastData = { success: false, message: e.message || '上传失败' };
+                        break;
+                    }
+                }
+            }
+
+            if (allSuccess) {
+                finishUpload(lastData || { success: true });
+            } else {
+                finishUpload(lastData || { success: false, message: '上传失败' });
+            }
+        })();
+    }
 }
 
 function cancelUpload() {
+    if (currentChunkUpload) {
+        currentChunkUpload.cancelled = true;
+        currentChunkUpload = null;
+    }
     if (currentXhr) {
         currentXhr.abort();
         currentXhr = null;
