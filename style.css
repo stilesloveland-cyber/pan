@@ -331,8 +331,8 @@ body {
 
 .upload-area {
     background: var(--bg-card); border: 2px dashed var(--border);
-    border-radius: var(--radius-lg); padding: 40px 24px; text-align: center;
-    transition: var(--transition); cursor: pointer; margin-bottom: 20px;
+    border-radius: var(--radius-lg); padding: 24px 20px; text-align: center;
+    transition: var(--transition); cursor: pointer; margin-bottom: 16px;
     position: relative; overflow: hidden;
 }
 .upload-area::before {
@@ -345,15 +345,15 @@ body {
 .upload-area.dragover { border-color: var(--primary); border-style: solid; background: var(--primary-light); }
 .upload-area.dragover::before { opacity: 1; }
 .upload-area .upload-icon {
-    width: 64px; height: 64px; margin: 0 auto 16px;
+    width: 48px; height: 48px; margin: 0 auto 10px;
     background: var(--primary-light); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     transition: var(--transition); position: relative;
 }
-.upload-area .upload-icon i { font-size: 28px; color: var(--primary); }
+.upload-area .upload-icon i { font-size: 22px; color: var(--primary); }
 .upload-area:hover .upload-icon { transform: scale(1.1) rotate(-5deg); }
-.upload-text { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary); position: relative; }
-.upload-subtext { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; position: relative; }
+.upload-text { font-size: 14px; font-weight: 600; margin-bottom: 2px; color: var(--text-primary); position: relative; }
+.upload-subtext { color: var(--text-muted); font-size: 12px; margin-bottom: 12px; position: relative; }
 .upload-options { display: flex; justify-content: center; gap: 10px; position: relative; }
 #file-input { display: none; }
 
@@ -648,9 +648,9 @@ body {
     .top-bar-left h1 { font-size: 15px; }
     .user-info { font-size: 12px; padding: 3px 10px; }
     .content-body { padding: 12px; }
-    .upload-area { padding: 24px 12px; }
-    .upload-area .upload-icon { width: 48px; height: 48px; }
-    .upload-area .upload-icon i { font-size: 20px; }
+    .upload-area { padding: 16px 12px; }
+    .upload-area .upload-icon { width: 40px; height: 40px; margin-bottom: 8px; }
+    .upload-area .upload-icon i { font-size: 18px; }
     .upload-text { font-size: 14px; }
     .upload-subtext { font-size: 12px; }
     .upload-options { flex-direction: column; align-items: center; gap: 8px; }

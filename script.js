@@ -391,11 +391,13 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
                     xhr.send(formData);
                 });
             } catch (e) {
-                retries--;
-                if (retries === 0) throw e;
-                await new Promise(r => setTimeout(r, 1000)); // 重试前等待1秒
-            }
-        }
+                if (state.cancelled) {
+                    retries = 0; // 取消时立即退出重试循环
+                } else {
+                    retries--;
+                    if (retries === 0) throw e;
+                    await new Promise(r => setTimeout(r, 1000)); // 重试前等待1秒
+                }
 
         if (state.cancelled) break;
 
