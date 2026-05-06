@@ -30,10 +30,11 @@ if (!$userDir && !empty($password)) {
 
 // 管理员获取所有用户文件
 $files = [];
+$skipDirs = ['public', 'shares', 'cache'];
 if ($isAdminUser) {
     $userDirs = scandir(BASE_UPLOAD_DIR);
     foreach ($userDirs as $userDirName) {
-        if ($userDirName != '.' && $userDirName != '..' && is_dir(BASE_UPLOAD_DIR . $userDirName)) {
+        if ($userDirName != '.' && $userDirName != '..' && !in_array($userDirName, $skipDirs) && is_dir(BASE_UPLOAD_DIR . $userDirName)) {
             $currentUserDir = BASE_UPLOAD_DIR . $userDirName . '/';
             $subFiles = getFileList($currentUserDir);
             foreach ($subFiles as &$f) {
