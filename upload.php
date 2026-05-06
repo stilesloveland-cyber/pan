@@ -1,8 +1,4 @@
-
-/**
- * WPAN 个人网盘系统 - 上传/用户操作 API
- * 版本: 2.0 (会话重构版)
- */
+<?php
 require_once __DIR__ . '/functions.php';
 
 initSystem();
