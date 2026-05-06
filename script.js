@@ -398,6 +398,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
                     if (retries === 0) throw e;
                     await new Promise(r => setTimeout(r, 1000)); // 重试前等待1秒
                 }
+            }
 
         if (state.cancelled) break;
 
@@ -1177,4 +1178,4 @@ function copyShareUrl() {
 function fallbackCopy() { const el = document.getElementById('share-url'); el.select(); document.execCommand('copy'); showToast('链接已复制到剪贴板'); }
 
 // 启动
-init();
+init()}
