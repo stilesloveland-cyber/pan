@@ -455,7 +455,9 @@ function initSidebarNavigation() {
             currentView = link.dataset.view;
             document.getElementById('section-title').textContent = currentView === 'personal' ? '个人文件' : '公共空间';
             document.getElementById('section-title-list').textContent = currentView === 'personal' ? '全部文件' : '公共空间';
-            currentPath = ''; folders = []; renderFiles(); updateSpaceDisplay();
+            currentPath = ''; folders = []; files = []; publicFiles = [];
+            if (currentView === 'personal') { refreshFileList(); } else { renderFiles(); }
+            updateSpaceDisplay();
             document.getElementById('search-input').value = ''; selectedFiles = []; updateSelectionUI();
             if (window.innerWidth <= 768) toggleSidebar();
         });
