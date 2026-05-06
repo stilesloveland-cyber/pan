@@ -1,107 +1,79 @@
 <?php
+/**
+ * WPAN 个人网盘系统 - 文件列表 API
+ * 版本: 2.0 (会话重构版)
+ */
 require_once __DIR__ . '/functions.php';
 
 initSystem();
 
+header('Content-Type: application/json; charset=utf-8');
+
+// 认证（会话优先，兼容密码参数）
+$user = getCurrentUser();
 $password = isset($_GET['password']) ? $_GET['password'] : '';
-if (empty($password)) {
-    echo json_encode(['success' => false, 'message' => '请输入密码']);
-    exit;
+
+if (!$user && !empty($password)) {
+    $user = findUserByPassword($password);
 }
 
-$user = findUserByPassword($password);
 if (!$user) {
-    echo json_encode(['success' => false, 'message' => '未注册的账户，请先注册']);
+    echo json_encode(['success' => false, 'message' => '请先登录']);
     exit;
 }
 
-$isAdminUser = isAdmin($user);
-$userDir = getUserDir($password);
-
-$files = [];
-
-if ($isAdminUser) {
-    $userDirs = scandir($baseUploadDir);
-    foreach ($userDirs as $userDirName) {
-        if ($userDirName != '.' && $userDirName != '..' && is_dir($baseUploadDir . $userDirName)) {
-            $currentUserDir = $baseUploadDir . $userDirName . '/';
-            $handle = opendir($currentUserDir);
-
-            if ($handle) {
-                while (false !== ($entry = readdir($handle))) {
-                    if ($entry != '.' && $entry != '..' && !is_dir($currentUserDir . $entry)) {
-                        $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $entry);
-                        $files[] = [
-                            'name' => $originalName,
-                            'size' => filesize($currentUserDir . $entry),
-                            'date' => filemtime($currentUserDir . $entry),
-                            'filename' => $entry,
-                            'userDir' => $userDirName
-                        ];
-                    }
-                }
-                closedir($handle);
-            }
-        }
-    }
-} else {
-    $handle = opendir($userDir);
-
-    if ($handle) {
-        while (false !== ($entry = readdir($handle))) {
-            if ($entry != '.' && $entry != '..' && !is_dir($userDir . $entry)) {
-                $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $entry);
-                $files[] = [
-                    'name' => $originalName,
-                    'size' => filesize($userDir . $entry),
-                    'date' => filemtime($userDir . $entry),
-                    'filename' => $entry
-                ];
-            }
-        }
-        closedir($handle);
-    }
+$isAdminUser = $user['data']['role'] === 'admin';
+$userDir = getCurrentUserDir();
+if (!$userDir && !empty($password)) {
+    $userDir = getUserDir($password);
 }
 
-$usedSize = calculateDirectorySize($userDir);
-$globalUsedSize = calculateGlobalSize($baseUploadDir);
-$publicUsedSize = calculateDirectorySize($publicDir);
+// 管理员获取所有用户文件
+$files = [];
+if ($isAdminUser) {
+    $userDirs = scandir(BASE_UPLOAD_DIR);
+    foreach ($userDirs as $userDirName) {
+        if ($userDirName != '.' && $userDirName != '..' && is_dir(BASE_UPLOAD_DIR . $userDirName)) {
+            $currentUserDir = BASE_UPLOAD_DIR . $userDirName . '/';
+            $subFiles = getFileList($currentUserDir);
+            foreach ($subFiles as &$f) {
+                $f['userDir'] = $userDirName;
+            }
+            $files = array_merge($files, $subFiles);
+        }
+    }
+} elseif ($userDir) {
+    $files = getFileList($userDir);
+}
 
+// 公共文件
+$publicFiles = getFileList(PUBLIC_DIR);
+foreach ($publicFiles as &$f) {
+    $f['isPublic'] = true;
+}
+
+// 排序（默认按时间倒序）
 usort($files, function($a, $b) {
     return $b['date'] - $a['date'];
 });
-
-$publicFiles = [];
-$publicHandle = opendir($publicDir);
-if ($publicHandle) {
-    while (false !== ($entry = readdir($publicHandle))) {
-        if ($entry != '.' && $entry != '..' && !is_dir($publicDir . $entry)) {
-            $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $entry);
-            $publicFiles[] = [
-                'name' => $originalName,
-                'size' => filesize($publicDir . $entry),
-                'date' => filemtime($publicDir . $entry),
-                'filename' => $entry,
-                'isPublic' => true
-            ];
-        }
-    }
-    closedir($publicHandle);
-}
-
 usort($publicFiles, function($a, $b) {
     return $b['date'] - $a['date'];
 });
 
-header('Content-Type: application/json');
+// 空间统计
+$usedSize = $userDir ? calculateDirectorySize($userDir) : 0;
+$globalUsedSize = calculateGlobalSize();
+$publicUsedSize = calculateDirectorySize(PUBLIC_DIR);
+
 echo json_encode([
     'success' => true,
+    'admin' => $isAdminUser,
     'files' => $files,
     'publicFiles' => $publicFiles,
     'usedSize' => $usedSize,
-    'maxSize' => $maxUserSize,
+    'maxSize' => MAX_USER_SIZE,
     'globalUsedSize' => $globalUsedSize,
-    'globalMaxSize' => $maxTotalSize,
+    'globalMaxSize' => MAX_TOTAL_SIZE,
     'publicUsedSize' => $publicUsedSize,
-    'publicMaxSize' => $maxPublicSize
+    'publicMaxSize' => MAX_PUBLIC_SIZE
 ]);

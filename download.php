@@ -1,52 +1,73 @@
 <?php
+/**
+ * WPAN 个人网盘系统 - 文件下载
+ * 版本: 2.0 (会话重构版)
+ */
 require_once __DIR__ . '/functions.php';
 
+initSystem();
+
+// 认证（会话优先，兼容密码参数）
+$user = getCurrentUser();
 $password = isset($_GET['password']) ? $_GET['password'] : '';
-if (empty($password)) {
-    die('请输入密码');
+
+if (!$user && !empty($password)) {
+    $user = findUserByPassword($password);
 }
 
-$user = findUserByPassword($password);
 if (!$user) {
-    die('未注册的账户，请先注册');
+    die('请先登录');
 }
 
-$isAdminUser = isAdmin($user);
-$userDir = getUserDir($password);
+$isAdminUser = $user['data']['role'] === 'admin';
+$userDir = getCurrentUserDir();
+if (!$userDir && !empty($password)) {
+    $userDir = getUserDir($password);
+}
 
 if (!isset($_GET['file'])) {
     die('没有提供文件名');
 }
 
-$fileName = $_GET['file'];
-$userDirParam = isset($_GET['userDir']) ? $_GET['userDir'] : '';
+$fileName = basename($_GET['file']);
+$userDirParam = isset($_GET['userDir']) ? basename($_GET['userDir']) : '';
 
+// 确定文件路径
 if ($isAdminUser && !empty($userDirParam)) {
-    $filePath = $baseUploadDir . $userDirParam . '/' . basename($fileName);
+    $filePath = BASE_UPLOAD_DIR . $userDirParam . '/' . $fileName;
+} elseif ($userDir) {
+    $filePath = $userDir . $fileName;
 } else {
-    $filePath = $userDir . basename($fileName);
+    die('无法确定文件路径');
 }
 
-if (!file_exists($filePath) || !is_file($filePath)) {
+// 安全检查：防止路径穿越
+$realFilePath = realpath($filePath);
+if ($realFilePath === false || !file_exists($realFilePath) || !is_file($realFilePath)) {
     die('文件不存在');
 }
 
-if (!$isAdminUser && strpos(realpath($filePath), realpath($userDir)) !== 0) {
-    die('无效的文件路径');
+// 非管理员只能访问自己目录的文件
+if (!$isAdminUser && $userDir) {
+    $realUserDir = realpath($userDir);
+    if ($realUserDir === false || strpos($realFilePath, $realUserDir) !== 0) {
+        die('无效的文件路径');
+    }
 }
 
 $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $fileName);
 
+// 安全地设置下载头
 header('Content-Description: File Transfer');
 header('Content-Type: application/octet-stream');
-header('Content-Disposition: attachment; filename="' . $originalName . '"');
+header('Content-Disposition: attachment; filename="' . addslashes($originalName) . '"');
 header('Content-Transfer-Encoding: binary');
 header('Expires: 0');
 header('Cache-Control: must-revalidate');
 header('Pragma: public');
-header('Content-Length: ' . filesize($filePath));
+header('Content-Length: ' . filesize($realFilePath));
 
 ob_clean();
 flush();
 
-readfile($filePath);
+readfile($realFilePath);

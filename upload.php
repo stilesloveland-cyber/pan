@@ -1,13 +1,28 @@
 <?php
+/**
+ * WPAN 个人网盘系统 - 上传/用户操作 API
+ * 版本: 2.0 (会话重构版)
+ */
 require_once __DIR__ . '/functions.php';
 
 initSystem();
 
+header('Content-Type: application/json; charset=utf-8');
+
+// ========== Ping 检测 ==========
 if (isset($_GET['action']) && $_GET['action'] === 'ping') {
     echo 'pong';
     exit;
 }
 
+// ========== 注销 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'logout') {
+    logoutUser();
+    echo json_encode(['success' => true, 'message' => '已退出登录']);
+    exit;
+}
+
+// ========== 注册 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'register') {
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     if (empty($password)) {
@@ -16,13 +31,20 @@ if (isset($_POST['action']) && $_POST['action'] === 'register') {
     }
 
     if (registerUser($password)) {
-        echo json_encode(['success' => true, 'message' => '注册成功']);
+        // 注册后自动登录
+        $user = loginUser($password);
+        echo json_encode([
+            'success' => true,
+            'message' => '注册成功',
+            'role' => $user['data']['role']
+        ]);
     } else {
         echo json_encode(['success' => false, 'message' => '该密码已被注册']);
     }
     exit;
 }
 
+// ========== 登录 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'login') {
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     if (empty($password)) {
@@ -30,15 +52,20 @@ if (isset($_POST['action']) && $_POST['action'] === 'login') {
         exit;
     }
 
-    $user = findUserByPassword($password);
+    $user = loginUser($password);
     if ($user) {
-        echo json_encode(['success' => true, 'message' => '登录成功', 'role' => $user['data']['role']]);
+        echo json_encode([
+            'success' => true,
+            'message' => '登录成功',
+            'role' => $user['data']['role']
+        ]);
     } else {
         echo json_encode(['success' => false, 'message' => '未注册的账户，请先注册']);
     }
     exit;
 }
 
+// ========== 修改密码 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
     $currentPassword = isset($_POST['current_password']) ? $_POST['current_password'] : '';
     $newPassword = isset($_POST['new_password']) ? $_POST['new_password'] : '';
@@ -49,32 +76,39 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
     }
 
     if (changeUserPassword($currentPassword, $newPassword)) {
-        echo json_encode(['success' => true, 'message' => '密码修改成功']);
+        echo json_encode(['success' => true, 'message' => '密码修改成功，请重新登录']);
     } else {
         echo json_encode(['success' => false, 'message' => '当前密码错误']);
     }
     exit;
 }
 
-$password = isset($_POST['password']) ? $_POST['password'] : (isset($_GET['password']) ? $_GET['password'] : '');
-if (empty($password)) {
-    echo json_encode(['success' => false, 'message' => '请输入密码']);
-    exit;
-}
+// ========== 认证（会话优先，兼容旧版密码参数） ==========
+$user = getCurrentUser();
+$password = '';
 
-$user = findUserByPassword($password);
+// 如果会话未登录，尝试密码参数（向后兼容）
 if (!$user) {
-    echo json_encode(['success' => false, 'message' => '未注册的账户，请先注册']);
-    exit;
+    $password = isset($_POST['password']) ? $_POST['password'] : (isset($_GET['password']) ? $_GET['password'] : '');
+    if (empty($password)) {
+        echo json_encode(['success' => false, 'message' => '请先登录']);
+        exit;
+    }
+    $user = findUserByPassword($password);
+    if (!$user) {
+        echo json_encode(['success' => false, 'message' => '未注册的账户，请先注册']);
+        exit;
+    }
 }
 
-$isAdminUser = isAdmin($user);
-$userDir = getUserDir($password);
+$isAdminUser = $user['data']['role'] === 'admin';
+$userDir = $password ? getUserDir($password) : getCurrentUserDir();
 
-if (!file_exists($userDir) && !$isAdminUser) {
-    mkdir($userDir, 0755, true);
+if (!$userDir || (!file_exists($userDir) && !$isAdminUser)) {
+    if ($userDir) mkdir($userDir, 0755, true);
 }
 
+// ========== 删除文件 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'delete') {
     $files = isset($_POST['files']) ? $_POST['files'] : (isset($_POST['file']) ? [$_POST['file']] : []);
     $userDirParam = isset($_POST['userDir']) ? $_POST['userDir'] : '';
@@ -85,47 +119,59 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
     }
 
     $deletedCount = 0;
+    $isPublicDelete = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
 
     foreach ($files as $file) {
-        if ($isAdminUser && !empty($userDirParam)) {
-            $filePath = $baseUploadDir . $userDirParam . '/' . basename($file);
+        $fileName = basename($file);
+
+        if ($isPublicDelete) {
+            // 删除公共空间文件
+            $filePath = PUBLIC_DIR . $fileName;
+        } elseif ($isAdminUser && !empty($userDirParam)) {
+            // 管理员删除指定用户文件
+            $filePath = BASE_UPLOAD_DIR . basename($userDirParam) . '/' . $fileName;
         } else {
-            $filePath = $userDir . basename($file);
+            // 普通用户删除自己的文件
+            $filePath = $userDir . $fileName;
         }
 
         if (file_exists($filePath) && is_file($filePath)) {
-            if ($isAdminUser || strpos(realpath($filePath), realpath($userDir)) === 0) {
-                if (unlink($filePath)) {
-                    $deletedCount++;
-                }
+            if (unlink($filePath)) {
+                $deletedCount++;
             }
         }
     }
 
+    clearSizeCache();
+
     if ($deletedCount > 0) {
-        $usedSize = calculateDirectorySize($userDir);
-        echo json_encode(['success' => true, 'message' => '文件删除成功', 'usedSize' => $usedSize, 'maxSize' => $maxTotalSize]);
+        $currentUsedSize = $userDir ? calculateDirectorySize($userDir) : 0;
+        echo json_encode([
+            'success' => true,
+            'message' => "成功删除 {$deletedCount} 个文件",
+            'usedSize' => $currentUsedSize,
+            'maxSize' => MAX_USER_SIZE
+        ]);
     } else {
-        echo json_encode(['success' => false, 'message' => '文件删除失败']);
+        echo json_encode(['success' => false, 'message' => '文件删除失败，文件可能不存在']);
     }
     exit;
 }
 
+// ========== 上传文件 ==========
 if (isset($_FILES['files'])) {
-    ini_set('upload_max_filesize', '10G');
-    ini_set('post_max_size', '10G');
-    ini_set('max_execution_time', 300);
-    ini_set('max_input_time', 300);
-    ini_set('memory_limit', '512M');
+    // 上传大小限制由 Nginx 和 php.ini 控制，运行时 ini_set 无效
+    // 仅设置执行时间
+    set_time_limit(300);
 
     $files = $_FILES['files'];
     $uploadedFiles = [];
     $errors = [];
     $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
 
-    $globalUsedSize = calculateGlobalSize($baseUploadDir);
-    $userUsedSize = calculateDirectorySize($userDir);
-    $publicUsedSize = calculateDirectorySize($publicDir);
+    $globalUsedSize = calculateGlobalSize();
+    $userUsedSize = $userDir ? calculateDirectorySize($userDir) : 0;
+    $publicUsedSize = calculateDirectorySize(PUBLIC_DIR);
 
     $fileList = [];
     if (is_array($files['name'])) {
@@ -157,25 +203,25 @@ if (isset($_FILES['files'])) {
             continue;
         }
 
-        if ($globalUsedSize + $fileSize > $maxTotalSize) {
+        if ($globalUsedSize + $fileSize > MAX_TOTAL_SIZE) {
             $errors[] = "文件 {$fileName} 上传失败：全局空间不足";
             continue;
         }
 
         if ($isPublic) {
-            if ($publicUsedSize + $fileSize > $maxPublicSize) {
+            if ($publicUsedSize + $fileSize > MAX_PUBLIC_SIZE) {
                 $errors[] = "文件 {$fileName} 上传失败：公共空间不足";
                 continue;
             }
         } else {
-            if ($userUsedSize + $fileSize > $maxUserSize) {
+            if ($userUsedSize + $fileSize > MAX_USER_SIZE) {
                 $errors[] = "文件 {$fileName} 上传失败：个人空间不足";
                 continue;
             }
         }
 
         $uniqueName = uniqid() . '_' . $fileName;
-        $destination = $isPublic ? $publicDir . $uniqueName : $userDir . $uniqueName;
+        $destination = $isPublic ? PUBLIC_DIR . $uniqueName : $userDir . $uniqueName;
 
         $targetDir = dirname($destination);
         if (!file_exists($targetDir)) {
@@ -195,17 +241,19 @@ if (isset($_FILES['files'])) {
         }
     }
 
+    clearSizeCache();
+
     if (empty($errors)) {
         echo json_encode([
             'success' => true,
             'message' => '文件上传成功',
             'files' => $uploadedFiles,
             'usedSize' => $userUsedSize,
-            'maxSize' => $maxUserSize,
+            'maxSize' => MAX_USER_SIZE,
             'globalUsedSize' => $globalUsedSize,
-            'globalMaxSize' => $maxTotalSize,
+            'globalMaxSize' => MAX_TOTAL_SIZE,
             'publicUsedSize' => $publicUsedSize,
-            'publicMaxSize' => $maxPublicSize
+            'publicMaxSize' => MAX_PUBLIC_SIZE
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => implode('; ', $errors)]);

@@ -1,67 +1,96 @@
 <?php
+/**
+ * WPAN 个人网盘系统 - 文件分享
+ * 版本: 2.0 (会话重构版)
+ */
 require_once __DIR__ . '/functions.php';
 
 initSystem();
 
-if (isset($_POST['action']) && $_POST['action'] === 'create_share') {
-    $password = isset($_POST['password']) ? $_POST['password'] : '';
-    $file = isset($_POST['file']) ? $_POST['file'] : '';
-    $expiry = isset($_POST['expiry']) ? $_POST['expiry'] : '1';
-    $userDir = isset($_POST['userDir']) ? $_POST['userDir'] : '';
+header('Content-Type: application/json; charset=utf-8');
 
-    if (empty($password) || empty($file)) {
+// ========== 创建分享链接 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'create_share') {
+    $file = isset($_POST['file']) ? $_POST['file'] : '';
+    $expiry = isset($_POST['expiry']) ? (int)$_POST['expiry'] : 1;
+    $userDirParam = isset($_POST['userDir']) ? $_POST['userDir'] : '';
+
+    if (empty($file)) {
         echo json_encode(['success' => false, 'message' => '缺少必要参数']);
         exit;
     }
 
-    $user = findUserByPassword($password);
+    // 认证（会话优先，兼容密码参数）
+    $user = getCurrentUser();
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+
+    if (!$user && !empty($password)) {
+        $user = findUserByPassword($password);
+    }
+
     if (!$user) {
-        echo json_encode(['success' => false, 'message' => '用户验证失败']);
+        echo json_encode(['success' => false, 'message' => '请先登录']);
         exit;
     }
 
-    $isAdminUser = isAdmin($user);
+    $isAdminUser = $user['data']['role'] === 'admin';
+    $fileName = basename($file);
 
-    if ($isAdminUser && !empty($userDir)) {
-        $filePath = $baseUploadDir . $userDir . '/' . basename($file);
+    // 确定文件路径
+    if ($isAdminUser && !empty($userDirParam)) {
+        $filePath = BASE_UPLOAD_DIR . basename($userDirParam) . '/' . $fileName;
+        $shareUserDir = basename($userDirParam);
     } else {
-        $userDirPath = getUserDir($password);
-        $filePath = $userDirPath . basename($file);
+        $userDirPath = getCurrentUserDir();
+        if (!$userDirPath && !empty($password)) {
+            $userDirPath = getUserDir($password);
+        }
+        if (!$userDirPath) {
+            echo json_encode(['success' => false, 'message' => '无法确定用户目录']);
+            exit;
+        }
+        $filePath = $userDirPath . $fileName;
+        $shareUserDir = basename($userDirPath);
     }
 
-    if (!file_exists($filePath) || !is_file($filePath)) {
+    // 安全检查
+    $realFilePath = realpath($filePath);
+    if ($realFilePath === false || !file_exists($realFilePath) || !is_file($realFilePath)) {
         echo json_encode(['success' => false, 'message' => '文件不存在']);
         exit;
     }
 
-    if (!$isAdminUser && strpos(realpath($filePath), realpath($userDirPath)) !== 0) {
-        echo json_encode(['success' => false, 'message' => '无效的文件路径']);
-        exit;
-    }
-
-    $shareId = uniqid();
-    $expiryTime = time() + ($expiry * 24 * 3600);
+    $shareId = uniqid('share_', true);
+    $expiryTime = time() + ($expiry * 86400);
 
     $shareData = [
-        'file' => $file,
-        'userDir' => $isAdminUser ? $userDir : md5($password),
+        'file' => $fileName,
+        'userDir' => $shareUserDir,
         'expiry' => $expiryTime,
         'created' => time()
     ];
 
-    file_put_contents($shareDir . $shareId . '.json', json_encode($shareData));
+    file_put_contents(SHARE_DIR . $shareId . '.json', json_encode($shareData));
 
-    $shareUrl = 'http://' . $_SERVER['HTTP_HOST'] . '/pan/share.php?id=' . $shareId;
+    $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    $shareUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']) . '/share.php?id=' . $shareId;
 
-    echo json_encode(['success' => true, 'message' => '分享链接生成成功', 'shareUrl' => $shareUrl, 'expiry' => $expiryTime]);
+    echo json_encode([
+        'success' => true,
+        'message' => '分享链接生成成功',
+        'shareUrl' => $shareUrl,
+        'expiry' => $expiryTime
+    ]);
     exit;
 }
 
+// ========== 访问分享链接（无需登录） ==========
 if (isset($_GET['id'])) {
-    $shareId = $_GET['id'];
-    $shareFile = $shareDir . $shareId . '.json';
+    $shareId = basename($_GET['id']);
+    $shareFile = SHARE_DIR . $shareId . '.json';
 
     if (!file_exists($shareFile)) {
+        http_response_code(404);
         die('分享链接不存在或已过期');
     }
 
@@ -69,38 +98,49 @@ if (isset($_GET['id'])) {
 
     if (time() > $shareData['expiry']) {
         unlink($shareFile);
+        http_response_code(410);
         die('分享链接已过期');
     }
 
-    $filePath = $baseUploadDir . $shareData['userDir'] . '/' . basename($shareData['file']);
+    $filePath = BASE_UPLOAD_DIR . basename($shareData['userDir']) . '/' . basename($shareData['file']);
+    $realFilePath = realpath($filePath);
 
-    if (!file_exists($filePath) || !is_file($filePath)) {
+    if ($realFilePath === false || !file_exists($realFilePath) || !is_file($realFilePath)) {
+        http_response_code(404);
         die('分享的文件不存在');
     }
 
-    $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $shareData['file']);
-
-    $fileExt = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', basename($shareData['file']));
+    $fileExt = strtolower(pathinfo($realFilePath, PATHINFO_EXTENSION));
 
     $mimeTypes = [
         'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg',
         'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',
-        'txt' => 'text/plain', 'md' => 'text/markdown',
-        'html' => 'text/html', 'css' => 'text/css',
-        'js' => 'application/javascript',
+        'bmp' => 'image/bmp', 'svg' => 'image/svg+xml',
+        'txt' => 'text/plain; charset=utf-8',
+        'md' => 'text/markdown; charset=utf-8',
+        'html' => 'text/html; charset=utf-8',
+        'css' => 'text/css; charset=utf-8',
+        'js' => 'application/javascript; charset=utf-8',
+        'json' => 'application/json; charset=utf-8',
         'pdf' => 'application/pdf',
-        'mp4' => 'video/mp4', 'avi' => 'video/x-msvideo', 'mov' => 'video/quicktime',
-        'mp3' => 'audio/mpeg', 'wav' => 'audio/wav', 'flac' => 'audio/flac'
+        'mp4' => 'video/mp4', 'webm' => 'video/webm',
+        'mp3' => 'audio/mpeg', 'wav' => 'audio/wav',
+        'flac' => 'audio/flac', 'ogg' => 'audio/ogg'
     ];
 
     $mimeType = isset($mimeTypes[$fileExt]) ? $mimeTypes[$fileExt] : 'application/octet-stream';
 
     header('Content-Type: ' . $mimeType);
-    header('Content-Disposition: inline; filename="' . $originalName . '"');
-    header('Content-Length: ' . filesize($filePath));
+    header('Content-Disposition: inline; filename="' . addslashes($originalName) . '"');
+    header('Content-Length: ' . filesize($realFilePath));
+    header('X-Content-Type-Options: nosniff');
 
-    readfile($filePath);
+    readfile($realFilePath);
     exit;
 }
 
+// 清理过期分享
 cleanExpiredShares();
+
+echo json_encode(['success' => false, 'message' => '请提供分享ID']);
