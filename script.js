@@ -557,8 +557,8 @@ function uploadFiles(fileList, isPublic = false) {
                         progressSpeed.textContent = '准备分片...';
                         const data = await uploadFileInChunks(file, isPublic, {
                             onProgress: (pct, loaded, total) => {
-                                // 加上之前已上传的文件大小
-                                updateProgress(pct, uploadedSize + loaded, totalSize);
+                                // 用已上传总量计算整体百分比，不用当前文件的百分比
+                                updateProgress(undefined, uploadedSize + loaded, totalSize);
                             },
                             onSpeed: (speed) => { progressSpeed.textContent = speed; }
                         });
