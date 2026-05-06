@@ -22,17 +22,27 @@ $userDir = getCurrentUserDir();
 if (!$userDir && !empty($password)) {
     $userDir = getUserDir($password);
 }
+if (!$userDir) die('无法确定用户目录');
 
-$files = isset($_GET['files']) ? $_GET['files'] : (isset($_POST['files']) ? $_POST['files'] : '');
-if (empty($files)) {
-    die('请选择要下载的文件');
+// 接收文件名列表（JSON 数组，或逗号分隔）
+$filesRaw = isset($_GET['files']) ? $_GET['files'] : '';
+if (empty($filesRaw)) die('请选择要下载的文件');
+
+// 尝试 JSON 解析，失败则按逗号分隔
+$fileNames = json_decode($filesRaw, true);
+if (!is_array($fileNames)) {
+    $fileNames = explode(',', $filesRaw);
 }
-
-// 解析文件名列表（逗号分隔）
-$fileNames = explode(',', $files);
 $fileNames = array_map('trim', $fileNames);
 $fileNames = array_filter($fileNames);
 $fileNames = array_map('basename', $fileNames);
+
+// 子文件夹路径
+$subDir = isset($_GET['dir']) ? trim($_GET['dir']) : '';
+if (!empty($subDir)) {
+    $safeSubDir = str_replace(['..', '\\'], '', $subDir);
+    $safeSubDir = trim($safeSubDir, '/');
+}
 
 // 创建临时 ZIP 文件
 $zipPath = sys_get_temp_dir() . '/wpan_' . uniqid() . '.zip';
@@ -47,18 +57,24 @@ $addedCount = 0;
 foreach ($fileNames as $fileName) {
     if (empty($fileName)) continue;
 
-    // 确定文件路径
+    // 拼接文件路径（含子文件夹）
     if ($isAdminUser && isset($_GET['userDir'])) {
-        $filePath = BASE_UPLOAD_DIR . basename($_GET['userDir']) . '/' . $fileName;
-    } elseif ($userDir) {
-        $filePath = $userDir . $fileName;
+        $basePath = BASE_UPLOAD_DIR . basename($_GET['userDir']) . '/';
     } else {
-        continue;
+        $basePath = $userDir;
+    }
+
+    if (!empty($safeSubDir)) {
+        $filePath = $basePath . $safeSubDir . '/' . $fileName;
+    } else {
+        $filePath = $basePath . $fileName;
     }
 
     if (file_exists($filePath) && is_file($filePath)) {
         $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $fileName);
-        $zip->addFile($filePath, $originalName);
+        // 如果文件在子文件夹中，保留相对路径结构
+        $zipPathName = !empty($safeSubDir) ? $safeSubDir . '/' . $originalName : $originalName;
+        $zip->addFile($filePath, $zipPathName);
         $addedCount++;
     }
 }

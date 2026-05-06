@@ -632,7 +632,7 @@ function selectAllFiles() {
 // ========== ZIP 打包下载 ==========
 function downloadSelectedAsZip() {
     if (selectedFiles.length === 0) { showToast('请先选择要下载的文件', true); return; }
-    let url = 'zip.php?files=' + selectedFiles.map(f => encodeURIComponent(f)).join(',');
+    let url = 'zip.php?files=' + encodeURIComponent(JSON.stringify(selectedFiles));
     if (currentPassword) url += '&password=' + encodeURIComponent(currentPassword);
     if (currentPath && currentView === 'personal') url += '&dir=' + encodeURIComponent(currentPath);
     window.location.href = url;
