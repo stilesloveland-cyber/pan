@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XX网盘</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body>
+    <!-- 网络延迟显示 -->
+    <div class="network-status" id="network-status">
+        <i class="fas fa-wifi"></i>
+        <span id="ping-value">-- ms</span>
+    </div>
+
+    <!-- 登录界面 -->
+    <div id="login-container" class="login-wrapper">
+        <div class="login-container">
+            <div class="logo"><i class="fas fa-cloud-upload-alt"></i></div>
+            <h1>XX网盘</h1>
+            <p class="subtitle">输入密码访问你的个人云存储</p>
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-password">登录密码</label>
+                    <input type="password" id="login-password" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;">
+                    <i class="fas fa-sign-in-alt"></i> 登录
+                </button>
+            </form>
+            <div style="margin-top: 24px; text-align: center;">
+                <span style="color: var(--text-muted); font-size: 14px;">还没有账号？</span>
+                <button class="btn btn-text" onclick="showRegisterModal()" style="width: 100%; margin-top: 8px; justify-content: center; color: var(--primary); font-weight: 600;">
+                    <i class="fas fa-user-plus"></i> 立即注册
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册弹窗 -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>注册账号</h2>
+                <button class="modal-close" onclick="closeRegisterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="register-password">密码</label>
+                        <input type="password" id="register-password" required style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="confirm-password">确认密码</label>
+                        <input type="password" id="confirm-password" required style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeRegisterModal()">取消</button>
+                        <button type="submit" class="btn">注册</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="main-container" style="display: none;">
+        <div class="main-layout">
+            <!-- 侧边栏 -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <a href="#" class="logo">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>XX网盘</span>
+                    </a>
+                </div>
+                <div class="sidebar-body">
+                    <button class="sidebar-upload-btn" onclick="document.getElementById('file-input').click()">
+                        <i class="fas fa-cloud-arrow-up"></i> 上传文件
+                    </button>
+                    <ul class="sidebar-nav" id="sidebar-nav">
+                        <li><a href="#" class="active" data-view="personal"><i class="fas fa-folder"></i> 个人文件</a></li>
+                        <li><a href="#" data-view="public"><i class="fas fa-users"></i> 公共空间</a></li>
+                    </ul>
+                </div>
+                <div class="sidebar-footer">
+                    <div class="sidebar-space-label">空间使用</div>
+                    <div class="sidebar-space-bar">
+                        <div id="sidebar-space-fill" class="sidebar-space-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="sidebar-space-text" id="sidebar-space-text">0 MB / 2 GB</div>
+                    <div style="display: flex; gap: 6px; margin-top: 12px;">
+                        <button class="btn btn-sm" onclick="toggleDarkMode()" style="flex:1;" title="切换主题">
+                            <i class="fas fa-moon" id="theme-icon"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="handleLogout()" style="flex:1;" title="退出登录">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 移动端侧边栏遮罩 -->
+            <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+            <!-- 主内容区 -->
+            <div class="main-content">
+                <!-- 顶部操作栏 -->
+                <div class="top-bar">
+                    <div class="top-bar-left">
+                        <button class="btn btn-text" onclick="toggleSidebar()" style="display:none;padding:6px 10px;font-size:18px" id="menu-toggle" title="菜单">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h1><i class="fas fa-folder-open"></i> <span id="section-title">个人文件</span></h1>
+                        <span class="user-info">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="user-id">用户</span>
+                            <span id="admin-badge" class="admin-badge" style="display: none;">管理员</span>
+                        </span>
+                    </div>
+                    <div class="top-bar-right">
+                        <button class="btn btn-text" onclick="showChangePassword()" title="修改密码">
+                            <i class="fas fa-key"></i>
+                        </button>
+                        <button class="btn btn-text" onclick="handleLogout()" title="切换用户">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="content-body">
+                    <!-- 上传区域 -->
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+                        <div class="upload-text">拖拽文件到此处或点击上传</div>
+                        <div class="upload-subtext">支持所有文件类型，单文件最大 10GB</div>
+                        <input type="file" id="file-input" multiple>
+                        <div class="upload-options">
+                            <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                                <i class="fas fa-folder-open"></i> 选择文件
+                            </button>
+                            <button class="btn" onclick="uploadToPublic()">
+                                <i class="fas fa-users"></i> 上传到公共空间
+                            </button>
+                        </div>
+                        <div class="progress-bar" id="progress-bar">
+                            <div class="progress-header">
+                                <div class="progress-title"><i class="fas fa-cloud-upload-alt"></i> 正在上传...</div>
+                                <div class="progress-stats">
+                                    <span><i class="fas fa-upload"></i> <span id="progress-speed">0 MB/s</span></span>
+                                    <span><i class="fas fa-percentage"></i> <span id="progress-percent-text">0%</span></span>
+                                </div>
+                            </div>
+                            <div class="progress-files" id="progress-files"></div>
+                            <div class="progress-track">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <div class="progress-footer">
+                                <span class="progress-percent" id="progress-percent">0%</span>
+                                <span class="progress-size" id="progress-size">0 B / 0 B</span>
+                                <button class="btn btn-sm btn-danger" onclick="cancelUpload()" id="btn-cancel-upload" style="margin-left:auto">
+                                    <i class="fas fa-times"></i> 取消
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文件列表区域 -->
+                    <div class="files-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-folder-open"></i> <span id="section-title-list">全部文件</span></h2>
+                            <div class="section-actions" id="file-actions-bar">
+                                <div class="view-toggle">
+                                    <button class="active" data-view="list"><i class="fas fa-list"></i></button>
+                                    <button data-view="grid"><i class="fas fa-th-large"></i></button>
+                                </div>
+                                <div class="search-box" style="display:inline-flex">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="search-input" placeholder="搜索..." onkeyup="searchFiles()" style="width:140px;">
+                                </div>
+                                <span class="sep-line"></span>
+                                <button class="btn btn-sm" onclick="showNewFolderModal()" title="新建文件夹">
+                                    <i class="fas fa-folder-plus"></i> 新建
+                                </button>
+                                <button class="btn btn-sm" onclick="showMoveSelectedModal()" id="btn-move-selected" title="移动到">
+                                    <i class="fas fa-folder-open"></i> 移动到
+                                </button>
+                                <button class="btn btn-sm" onclick="downloadSelectedAsZip()" id="btn-zip-download" title="打包下载">
+                                    <i class="fas fa-file-archive"></i> 打包
+                                </button>
+                                <button class="btn btn-sm" onclick="selectAllFiles()">
+                                    <i class="fas fa-check-square"></i> 全选
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()">
+                                    <i class="fas fa-trash-alt"></i> 删除
+                                </button>
+                                <span id="selected-count" class="selected-count" style="display:none;"></span>
+                            </div>
+                        </div>
+
+                        <!-- 面包屑导航 -->
+                        <div id="breadcrumb" class="breadcrumb" style="display: none; font-size: 13px;"></div>
+
+                        <!-- 排序栏 -->
+                        <div class="sort-bar">
+                            <select id="sort-select" class="sort-select" onchange="sortFiles()">
+                                <option value="date-desc">最新优先</option>
+                                <option value="date-asc">最早优先</option>
+                                <option value="size-desc">从大到小</option>
+                                <option value="size-asc">从小到大</option>
+                                <option value="name-asc">A-Z</option>
+                                <option value="name-desc">Z-A</option>
+                            </select>
+                        </div>
+                        <div class="file-list-view" id="file-list-view">
+                            <ul id="file-list">
+                                <!-- 文件列表将通过JavaScript动态生成 -->
+                            </ul>
+                        </div>
+                        <div class="file-grid-view" id="file-grid-view" style="display: none;">
+                            <!-- 图标视图将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件夹弹窗 -->
+    <div id="new-folder-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>新建文件夹</h2>
+                <button class="modal-close" onclick="closeNewFolderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleCreateFolder(event)">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="folder-name">文件夹名称</label>
+                        <input type="text" id="folder-name" placeholder="输入文件夹名称" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeNewFolderModal()">取消</button>
+                        <button type="submit" class="btn">创建</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动文件弹窗 -->
+    <div id="move-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>移动文件</h2>
+                <button class="modal-close" onclick="closeMoveModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleMove(event)">
+                    <input type="hidden" id="move-item-name">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="move-target">选择目标文件夹</label>
+                        <select id="move-target" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text-primary);">
+                            <option value="">根目录</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeMoveModal()">取消</button>
+                        <button type="submit" class="btn">移动</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名弹窗 -->
+    <div id="rename-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>重命名</h2>
+                <button class="modal-close" onclick="closeRenameModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleRename(event)">
+                    <input type="hidden" id="rename-old-name">
+                    <input type="hidden" id="rename-is-dir" value="false">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="rename-new-name">新名称</label>
+                        <input type="text" id="rename-new-name" placeholder="输入新名称" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeRenameModal()">取消</button>
+                        <button type="submit" class="btn">确定</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 密码修改弹窗 -->
+    <div id="change-password-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>修改密码</h2>
+                <button class="modal-close" onclick="closeChangePasswordModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleChangePassword(event)">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="current-password">当前密码</label>
+                        <input type="password" id="current-password" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="new-password">新密码</label>
+                        <input type="password" id="new-password" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">取消</button>
+                        <button type="submit" class="btn">确认修改</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 预览弹窗 -->
+    <div id="preview-modal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>文件预览</h2>
+                <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-content" style="width: 100%;">
+                    <!-- 预览内容将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分享弹窗 -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>分享文件</h2>
+                <button class="modal-close" onclick="closeShareModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleShareFile(event)">
+                    <input type="hidden" id="share-file-name">
+                    <input type="hidden" id="share-user-dir">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="share-expiry">有效期</label>
+                        <select id="share-expiry" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                            <option value="1">1天</option>
+                            <option value="7">7天</option>
+                            <option value="30">30天</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="share-url">分享链接</label>
+                        <input type="text" id="share-url" readonly style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                        <button type="button" class="btn btn-sm" onclick="copyShareUrl()" style="margin-top: 10px;">复制链接</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeShareModal()">取消</button>
+                        <button type="submit" class="btn">生成链接</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="context-menu"></div>
+    <!-- 图片灯箱 -->
+    <div class="lightbox-overlay" id="lightbox">
+        <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+        <button class="lightbox-prev" onclick="prevLightbox()">&#10094;</button>
+        <img class="lightbox-img" id="lightbox-img" onclick="toggleLightboxZoom()">
+        <button class="lightbox-next" onclick="nextLightbox()">&#10095;</button>
+        <div class="lightbox-counter" id="lightbox-counter"></div>
+    </div>
+
+    <script src="script.js?v=7"></script>
+</body>
+</html>

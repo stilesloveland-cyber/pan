@@ -1178,4 +1178,4 @@ function copyShareUrl() {
 function fallbackCopy() { const el = document.getElementById('share-url'); el.select(); document.execCommand('copy'); showToast('链接已复制到剪贴板'); }
 
 // 启动
-init()}
+init();}
