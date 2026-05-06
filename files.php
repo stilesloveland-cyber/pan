@@ -28,10 +28,24 @@ if (!$userDir && !empty($password)) {
     $userDir = getUserDir($password);
 }
 
-// 管理员获取所有用户文件
+// 当前浏览的目录（支持子文件夹）
+$currentListDir = $userDir;
+$currentPath = '';
+if (isset($_GET['dir']) && !empty($_GET['dir']) && $userDir) {
+    $reqDir = safeJoinPath($userDir, $_GET['dir']);
+    if (strpos($reqDir, $userDir) === 0 && is_dir($reqDir)) {
+        $currentListDir = $reqDir;
+        $currentPath = trim(str_replace($userDir, '', $reqDir), '/');
+    }
+}
+
+// 获取文件夹列表
+$folders = $currentListDir ? getFolderList($currentListDir) : [];
+
+// 管理员获取所有用户文件（仅在根目录时）
 $files = [];
 $skipDirs = ['public', 'shares', 'cache'];
-if ($isAdminUser) {
+if ($isAdminUser && empty($currentPath)) {
     $userDirs = scandir(BASE_UPLOAD_DIR);
     foreach ($userDirs as $userDirName) {
         if ($userDirName != '.' && $userDirName != '..' && !in_array($userDirName, $skipDirs) && is_dir(BASE_UPLOAD_DIR . $userDirName)) {
@@ -43,8 +57,8 @@ if ($isAdminUser) {
             $files = array_merge($files, $subFiles);
         }
     }
-} elseif ($userDir) {
-    $files = getFileList($userDir);
+} elseif ($currentListDir) {
+    $files = getFileList($currentListDir);
 }
 
 // 公共文件
@@ -69,6 +83,8 @@ $publicUsedSize = calculateDirectorySize(PUBLIC_DIR);
 echo json_encode([
     'success' => true,
     'admin' => $isAdminUser,
+    'currentPath' => $currentPath,
+    'folders' => $folders,
     'files' => $files,
     'publicFiles' => $publicFiles,
     'usedSize' => $usedSize,

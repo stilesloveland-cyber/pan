@@ -346,6 +346,97 @@ function getFileList($dir) {
     return $files;
 }
 
+/**
+ * 安全地获取文件夹列表
+ */
+function getFolderList($dir) {
+    $folders = [];
+    if (!is_dir($dir)) return $folders;
+    $handle = opendir($dir);
+    if ($handle) {
+        while (false !== ($entry = readdir($handle))) {
+            if ($entry != '.' && $entry != '..' && is_dir($dir . $entry)) {
+                $folders[] = [
+                    'name' => $entry,
+                    'date' => filemtime($dir . $entry)
+                ];
+            }
+        }
+        closedir($handle);
+    }
+    usort($folders, function($a, $b) {
+        return strcmp($a['name'], $b['name']);
+    });
+    return $folders;
+}
+
+/**
+ * 安全地拼接路径（防止路径穿越）
+ */
+function safeJoinPath($base, $subPath) {
+    $subPath = str_replace('\\', '/', $subPath);
+    // 移除开头的 /
+    $subPath = ltrim($subPath, '/');
+    // 移除以 ./ 和 ../ 开头的遍历
+    $parts = explode('/', $subPath);
+    $safeParts = [];
+    foreach ($parts as $part) {
+        if ($part === '' || $part === '.' || $part === '..') continue;
+        $safeParts[] = $part;
+    }
+    if (empty($safeParts)) return rtrim($base, '/') . '/';
+    return rtrim($base, '/') . '/' . implode('/', $safeParts) . '/';
+}
+
+/**
+ * 创建文件夹
+ */
+function createFolder($baseDir, $folderName) {
+    $folderName = basename(trim($folderName));
+    if (empty($folderName)) return false;
+    $path = rtrim($baseDir, '/') . '/' . $folderName;
+    if (file_exists($path)) return false;
+    return mkdir($path, 0755, true);
+}
+
+/**
+ * 重命名文件或文件夹
+ */
+function renameFileOrFolder($baseDir, $oldName, $newName) {
+    $oldName = basename(trim($oldName));
+    $newName = basename(trim($newName));
+    if (empty($oldName) || empty($newName)) return false;
+    $oldPath = rtrim($baseDir, '/') . '/' . $oldName;
+    $newPath = rtrim($baseDir, '/') . '/' . $newName;
+    if (!file_exists($oldPath) || file_exists($newPath)) return false;
+    return rename($oldPath, $newPath);
+}
+
+/**
+ * 获取当前目录下的所有内容（文件夹+文件）
+ */
+function getDirectoryContents($dir) {
+    $items = [];
+    if (!is_dir($dir)) return $items;
+
+    // 获取文件夹
+    $folders = getFolderList($dir);
+    foreach ($folders as $f) {
+        $f['isDir'] = true;
+        $f['size'] = 0;
+        $items[] = $f;
+    }
+
+    // 获取文件
+    $files = getFileList($dir);
+    foreach ($files as $f) {
+        $f['isDir'] = false;
+        $items[] = $f;
+    }
+
+    return $items;
+}
+
 function cleanExpiredShares() {
     if (!is_dir(SHARE_DIR)) return;
     $files = scandir(SHARE_DIR);

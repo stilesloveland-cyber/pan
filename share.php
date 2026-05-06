@@ -35,10 +35,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_share') {
 
     $isAdminUser = $user['data']['role'] === 'admin';
     $fileName = basename($file);
+    $subDir = isset($_POST['dir']) ? trim($_POST['dir']) : '';
 
-    // 确定文件路径
+    // 确定文件路径（支持子文件夹）
     if ($isAdminUser && !empty($userDirParam)) {
-        $filePath = BASE_UPLOAD_DIR . basename($userDirParam) . '/' . $fileName;
+        $basePath = BASE_UPLOAD_DIR . basename($userDirParam) . '/';
         $shareUserDir = basename($userDirParam);
     } else {
         $userDirPath = getCurrentUserDir();
@@ -49,8 +50,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_share') {
             echo json_encode(['success' => false, 'message' => '无法确定用户目录']);
             exit;
         }
-        $filePath = $userDirPath . $fileName;
+        $basePath = $userDirPath;
         $shareUserDir = basename($userDirPath);
+    }
+
+    if (!empty($subDir)) {
+        $safeSubDir = str_replace(['..', '\\'], '', $subDir);
+        $safeSubDir = trim($safeSubDir, '/');
+        $filePath = $basePath . $safeSubDir . '/' . $fileName;
+        $shareUserDir = $shareUserDir . '/' . $safeSubDir;
+    } else {
+        $filePath = $basePath . $fileName;
     }
 
     // 安全检查

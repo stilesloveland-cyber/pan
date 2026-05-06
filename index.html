@@ -302,6 +302,44 @@
         .sidebar-nav a.active i {
             color: var(--primary);
         }
+
+        /* 面包屑导航 */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+        .breadcrumb a:hover {
+            background: var(--primary-light);
+        }
+        .breadcrumb span {
+            color: var(--text-muted);
+        }
+        .breadcrumb .sep {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+        .breadcrumb .current {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* 文件夹图标 */
+        .file-thumb.folder { color: var(--warning); background: #fffbeb; }
+        .file-grid-thumb.folder { color: var(--warning); background: #fffbeb; }
         .sidebar-footer {
             padding: 16px 20px;
             border-top: 1px solid var(--border);
@@ -1271,6 +1309,9 @@
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="search-input" placeholder="搜索文件..." onkeyup="searchFiles()">
                             </div>
+                            <button class="btn btn-sm" onclick="showNewFolderModal()" title="新建文件夹">
+                                <i class="fas fa-folder-plus"></i> 新建
+                            </button>
                             <button class="btn btn-sm" onclick="selectAllFiles()">
                                 <i class="fas fa-check-square"></i> 全选
                             </button>
@@ -1279,6 +1320,9 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- 面包屑导航 -->
+                    <div id="breadcrumb" class="breadcrumb" style="display: none; margin-bottom: 12px; font-size: 13px;"></div>
 
                     <!-- 上传区域 -->
                     <div class="upload-area" id="upload-area">
@@ -1324,6 +1368,52 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建文件夹弹窗 -->
+    <div id="new-folder-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>新建文件夹</h2>
+                <button class="modal-close" onclick="closeNewFolderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleCreateFolder(event)">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="folder-name">文件夹名称</label>
+                        <input type="text" id="folder-name" placeholder="输入文件夹名称" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeNewFolderModal()">取消</button>
+                        <button type="submit" class="btn">创建</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名弹窗 -->
+    <div id="rename-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>重命名</h2>
+                <button class="modal-close" onclick="closeRenameModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleRename(event)">
+                    <input type="hidden" id="rename-old-name">
+                    <input type="hidden" id="rename-is-dir" value="false">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="rename-new-name">新名称</label>
+                        <input type="text" id="rename-new-name" placeholder="输入新名称" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius);">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeRenameModal()">取消</button>
+                        <button type="submit" class="btn">确定</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -1407,8 +1497,10 @@
         let currentPassword = '';
         let files = [];
         let publicFiles = [];
+        let folders = [];
         let currentView = 'personal'; // personal or public
         let displayView = 'list'; // list or grid
+        let currentPath = ''; // 当前子文件夹路径
         let selectedFiles = [];
         let usedSize = 0;
         let maxSize = 2 * 1024 * 1024 * 1024; // 2GB
@@ -1648,6 +1740,83 @@
             });
         }
 
+        // ========== 新建文件夹 ==========
+        function showNewFolderModal() {
+            document.getElementById('folder-name').value = '';
+            document.getElementById('new-folder-modal').classList.add('show');
+            setTimeout(() => document.getElementById('folder-name').focus(), 100);
+        }
+        function closeNewFolderModal() {
+            document.getElementById('new-folder-modal').classList.remove('show');
+        }
+        function handleCreateFolder(event) {
+            event.preventDefault();
+            const folderName = document.getElementById('folder-name').value.trim();
+            if (!folderName) { alert('请输入文件夹名称'); return; }
+            if (/[\\/:*?"<>|]/.test(folderName)) { alert('文件夹名称包含非法字符'); return; }
+            
+            let body = `action=create_folder&folder_name=${encodeURIComponent(folderName)}`;
+            if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
+            if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
+
+            fetch('upload.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeNewFolderModal();
+                    refreshFileList();
+                    showToast('文件夹创建成功');
+                } else {
+                    alert('创建失败：' + data.message);
+                }
+            })
+            .catch(() => alert('创建失败，请重试'));
+        }
+
+        // ========== 重命名 ==========
+        function showRenameModal(name, isDir = false) {
+            document.getElementById('rename-old-name').value = name;
+            document.getElementById('rename-is-dir').value = isDir ? 'true' : 'false';
+            document.getElementById('rename-new-name').value = name;
+            document.getElementById('rename-modal').classList.add('show');
+            setTimeout(() => document.getElementById('rename-new-name').focus(), 100);
+        }
+        function closeRenameModal() {
+            document.getElementById('rename-modal').classList.remove('show');
+        }
+        function handleRename(event) {
+            event.preventDefault();
+            const oldName = document.getElementById('rename-old-name').value;
+            const newName = document.getElementById('rename-new-name').value.trim();
+            if (!newName) { alert('请输入新名称'); return; }
+            if (/[\\/:*?"<>|]/.test(newName)) { alert('名称包含非法字符'); return; }
+
+            let body = `action=rename&old_name=${encodeURIComponent(oldName)}&new_name=${encodeURIComponent(newName)}`;
+            if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
+            if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
+
+            fetch('upload.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeRenameModal();
+                    refreshFileList();
+                    showToast('重命名成功');
+                } else {
+                    alert('重命名失败：' + data.message);
+                }
+            })
+            .catch(() => alert('重命名失败，请重试'));
+        }
+
         // 显示修改密码弹窗
         function showChangePassword() {
             changePasswordModal.classList.add('show');
@@ -1747,9 +1916,8 @@
             }
             
             formData.append('is_public', isPublic);
-            if (currentPassword) {
-                formData.append('password', currentPassword);
-            }
+            if (currentPassword) formData.append('password', currentPassword);
+            if (currentPath && !isPublic) formData.append('dir', currentPath);
 
             // DOM 元素
             const progressSpeed = document.getElementById('progress-speed');
@@ -1824,18 +1992,23 @@
         // 刷新文件列表
         function refreshFileList() {
             let url = 'files.php';
-            if (currentPassword) {
-                url += `?password=${encodeURIComponent(currentPassword)}`;
-            }
+            let params = [];
+            if (currentPassword) params.push('password=' + encodeURIComponent(currentPassword));
+            if (currentPath) params.push('dir=' + encodeURIComponent(currentPath));
+            if (params.length) url += '?' + params.join('&');
+            
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         files = data.files || [];
                         publicFiles = data.publicFiles || [];
+                        folders = data.folders || [];
                         isAdmin = data.admin || isAdmin;
+                        currentPath = data.currentPath || '';
                         updateSpaceUsage(data);
                         renderFiles();
+                        updateBreadcrumb();
                     } else if (data.message && data.message.includes('登录')) {
                         showLogin();
                     }
@@ -1843,6 +2016,55 @@
                 .catch(error => {
                     console.error('获取文件列表失败:', error);
                 });
+        }
+
+        // ========== 文件夹导航 ==========
+        function navigateToFolder(folderName) {
+            if (currentPath) {
+                currentPath = currentPath + '/' + folderName;
+            } else {
+                currentPath = folderName;
+            }
+            selectedFiles = [];
+            refreshFileList();
+        }
+
+        function navigateToPath(path) {
+            currentPath = path;
+            selectedFiles = [];
+            refreshFileList();
+        }
+
+        function goToParentFolder() {
+            if (!currentPath) return;
+            const parts = currentPath.split('/');
+            parts.pop();
+            currentPath = parts.join('/');
+            selectedFiles = [];
+            refreshFileList();
+        }
+
+        function updateBreadcrumb() {
+            const el = document.getElementById('breadcrumb');
+            if (!currentPath || currentView !== 'personal') {
+                el.style.display = 'none';
+                return;
+            }
+            el.style.display = 'flex';
+            
+            const parts = currentPath.split('/');
+            let html = '<a href="#" onclick="navigateToPath(\'\'); return false"><i class="fas fa-home"></i> 根目录</a>';
+            let accumulated = '';
+            parts.forEach((part, i) => {
+                if (!part) return;
+                accumulated = accumulated ? accumulated + '/' + part : part;
+                if (i === parts.length - 1) {
+                    html += `<span class="sep"> › </span><span class="current">${escHtml(part)}</span>`;
+                } else {
+                    html += `<span class="sep"> › </span><a href="#" onclick="navigateToPath('${accumulated}'); return false">${escHtml(part)}</a>`;
+                }
+            });
+            el.innerHTML = html;
         }
 
         // 更新空间使用情况
@@ -1879,10 +2101,11 @@
                     link.classList.add('active');
                     currentView = link.dataset.view;
                     document.getElementById('section-title').textContent = currentView === 'personal' ? '个人文件' : '公共空间';
+                    // 切换视图时重置路径
+                    currentPath = '';
                     renderFiles();
                     updateSpaceDisplay();
 
-                    // 清空搜索和选择
                     document.getElementById('search-input').value = '';
                     selectedFiles = [];
 
@@ -1958,11 +2181,23 @@
         // 搜索文件
         function searchFiles() {
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            if (!searchTerm) {
+                renderFiles(currentView === 'personal' ? files : publicFiles);
+                return;
+            }
             const currentFiles = currentView === 'personal' ? files : publicFiles;
             const filteredFiles = currentFiles.filter(file => 
                 file.name.toLowerCase().includes(searchTerm)
             );
+            // 也过滤文件夹
+            window._filteredFolders = (folders || []).filter(f => 
+                f.name.toLowerCase().includes(searchTerm)
+            );
+            // 临时替换 folders
+            const origFolders = folders;
+            folders = window._filteredFolders;
             renderFiles(filteredFiles);
+            folders = origFolders;
         }
 
         // 渲染文件
@@ -1977,11 +2212,35 @@
         }
 
         // 渲染列表视图
-        function renderListView(files) {
+        function renderListView(items) {
             fileListView.style.display = 'block';
             fileGridView.style.display = 'none';
+
+            // 合并文件夹和文件
+            let allItems = [];
             
-            if (files.length === 0) {
+            // 添加返回上级
+            if (currentPath && currentView === 'personal') {
+                allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
+            }
+            
+            // 添加文件夹
+            (folders || []).forEach(f => {
+                allItems.push({
+                    isDir: true,
+                    name: f.name,
+                    date: f.date || 0,
+                    size: 0,
+                    filename: f.name
+                });
+            });
+            
+            // 添加文件
+            (items || []).forEach(f => {
+                allItems.push(f);
+            });
+            
+            if (allItems.length === 0) {
                 fileList.innerHTML = `
                     <li class="empty-state">
                         <i class="fas fa-folder-open"></i>
@@ -1994,7 +2253,48 @@
 
             fileList.innerHTML = '';
             
-            files.forEach(file => {
+            allItems.forEach(file => {
+                // 如果是返回上级
+                if (file.isParent) {
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.style.cursor = 'pointer';
+                    li.onclick = goToParentFolder;
+                    li.innerHTML = `
+                        <div class="file-thumb folder"><i class="fas fa-level-up-alt"></i></div>
+                        <div class="file-info">
+                            <div class="file-name" style="color:var(--primary);font-weight:600">返回上级</div>
+                            <div class="file-meta"><span>上级目录</span></div>
+                        </div>
+                    `;
+                    fileList.appendChild(li);
+                    return;
+                }
+                
+                // 如果是文件夹
+                if (file.isDir) {
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.style.cursor = 'pointer';
+                    li.onclick = () => navigateToFolder(file.name);
+                    li.innerHTML = `
+                        <div class="file-thumb folder"><i class="fas fa-folder"></i></div>
+                        <div class="file-info">
+                            <div class="file-name">${escHtml(file.name)}</div>
+                            <div class="file-meta"><span>文件夹</span></div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-text" onclick="event.stopPropagation();showRenameModal('${escHtml(file.name)}', true)" title="重命名">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="btn btn-text btn-danger-text" onclick="event.stopPropagation();deleteFile('${escHtml(file.name)}')" title="删除">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `;
+                    fileList.appendChild(li);
+                    return;
+                }
                 const li = document.createElement('li');
                 li.className = 'file-item';
                 li.dataset.filename = file.filename;
@@ -2014,8 +2314,10 @@
                 else if (['js', 'css', 'html', 'php'].includes(ext)) { fileIcon = 'fas fa-file-code'; thumbClass = 'code'; }
                 else if (['txt', 'md'].includes(ext)) { fileIcon = 'fas fa-file-alt'; thumbClass = 'text'; }
 
-                // 构建下载链接
+                // 构建操作链接（支持子文件夹路径）
+                const fileDir = currentPath && currentView === 'personal' ? currentPath : '';
                 let downloadUrl = `download.php?file=${encodeURIComponent(file.filename)}`;
+                if (fileDir) downloadUrl += `&dir=${encodeURIComponent(fileDir)}`;
                 if (file.userDir) downloadUrl += `&userDir=${encodeURIComponent(file.userDir)}`;
                 if (currentPassword) downloadUrl += `&password=${encodeURIComponent(currentPassword)}`;
 
@@ -2041,6 +2343,9 @@
                         <a href="${downloadUrl}" class="btn btn-text" download="${escHtml(file.name)}" title="下载">
                             <i class="fas fa-download"></i>
                         </a>
+                        <button class="btn btn-text" onclick="showRenameModal('${escHtml(file.filename)}', false)" title="重命名">
+                            <i class="fas fa-pen"></i>
+                        </button>
                         <button class="btn btn-text btn-danger-text" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="删除">
                             <i class="fas fa-trash-alt"></i>
                         </button>
@@ -2052,11 +2357,22 @@
         }
 
         // 渲染图标视图
-        function renderGridView(files) {
+        function renderGridView(items) {
             fileListView.style.display = 'none';
             fileGridView.style.display = 'grid';
+
+            // 合并文件夹和文件
+            let allItems = [];
             
-            if (files.length === 0) {
+            if (currentPath && currentView === 'personal') {
+                allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
+            }
+            (folders || []).forEach(f => {
+                allItems.push({ isDir: true, name: f.name, date: f.date || 0, size: 0, filename: f.name });
+            });
+            (items || []).forEach(f => allItems.push(f));
+            
+            if (allItems.length === 0) {
                 fileGridView.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-folder-open"></i>
@@ -2069,7 +2385,40 @@
 
             fileGridView.innerHTML = '';
             
-            files.forEach(file => {
+            allItems.forEach(file => {
+                // 返回上级
+                if (file.isParent) {
+                    const div = document.createElement('div');
+                    div.className = 'file-grid-item';
+                    div.style.cursor = 'pointer';
+                    div.onclick = goToParentFolder;
+                    div.innerHTML = `
+                        <div class="file-grid-thumb folder"><i class="fas fa-level-up-alt"></i></div>
+                        <div class="file-grid-name" style="color:var(--primary);font-weight:600">返回上级</div>
+                        <div class="file-grid-meta"><div>上级目录</div></div>
+                    `;
+                    fileGridView.appendChild(div);
+                    return;
+                }
+                
+                // 文件夹
+                if (file.isDir) {
+                    const div = document.createElement('div');
+                    div.className = 'file-grid-item';
+                    div.style.cursor = 'pointer';
+                    div.onclick = () => navigateToFolder(file.name);
+                    div.innerHTML = `
+                        <div class="file-grid-actions">
+                            <button class="btn" onclick="event.stopPropagation();showRenameModal('${escHtml(file.name)}', true)" title="重命名"><i class="fas fa-pen"></i></button>
+                            <button class="btn" onclick="event.stopPropagation();deleteFile('${escHtml(file.name)}')" title="删除"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                        <div class="file-grid-thumb folder"><i class="fas fa-folder"></i></div>
+                        <div class="file-grid-name">${escHtml(file.name)}</div>
+                        <div class="file-grid-meta"><div>文件夹</div></div>
+                    `;
+                    fileGridView.appendChild(div);
+                    return;
+                }
                 const div = document.createElement('div');
                 div.className = 'file-grid-item';
                 div.dataset.filename = file.filename;
@@ -2088,8 +2437,10 @@
                 else if (['js', 'css', 'html', 'php'].includes(ext)) { fileIcon = 'fas fa-file-code'; thumbClass = 'code'; }
                 else if (['txt', 'md'].includes(ext)) { fileIcon = 'fas fa-file-alt'; thumbClass = 'text'; }
 
-                // 构建下载链接
+                // 构建下载链接（支持子文件夹路径）
+                const fileDir = currentPath && currentView === 'personal' ? currentPath : '';
                 let downloadUrl = `download.php?file=${encodeURIComponent(file.filename)}`;
+                if (fileDir) downloadUrl += `&dir=${encodeURIComponent(fileDir)}`;
                 if (file.userDir) downloadUrl += `&userDir=${encodeURIComponent(file.userDir)}`;
                 if (currentPassword) downloadUrl += `&password=${encodeURIComponent(currentPassword)}`;
 
@@ -2098,6 +2449,7 @@
                         <button class="btn" onclick="previewFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="预览"><i class="fas fa-eye"></i></button>
                         <button class="btn" onclick="shareFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="分享"><i class="fas fa-share-alt"></i></button>
                         <a href="${downloadUrl}" class="btn" download="${escHtml(file.name)}" title="下载"><i class="fas fa-download"></i></a>
+                        <button class="btn" onclick="showRenameModal('${escHtml(file.filename)}', false)" title="重命名"><i class="fas fa-pen"></i></button>
                         <button class="btn" onclick="deleteFile('${file.filename}', ${file.userDir ? `'${file.userDir}'` : 'null'})" title="删除"><i class="fas fa-trash-alt"></i></button>
                     </div>
                     <div class="file-grid-thumb ${thumbClass}"><i class="${fileIcon}"></i></div>
@@ -2144,8 +2496,8 @@
             const formData = new FormData();
             formData.append('action', 'delete');
             if (currentPassword) formData.append('password', currentPassword);
+            if (currentPath && currentView === 'personal') formData.append('dir', currentPath);
             
-            // 判断是否在公共空间视图
             if (currentView === 'public') {
                 formData.append('is_public', 'true');
             }
@@ -2181,6 +2533,7 @@
             let body = `action=delete&file=${encodeURIComponent(filename)}`;
             if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
             if (isAdmin && userDir) body += `&userDir=${encodeURIComponent(userDir)}`;
+            if (currentPath && currentView === 'personal') body += `&dir=${encodeURIComponent(currentPath)}`;
             if (currentView === 'public') body += '&is_public=true';
             
             fetch('upload.php', {
@@ -2300,6 +2653,7 @@
             // 构建预览URL（Session优先，密码备选）
             let previewUrl = `preview.php?file=${encodeURIComponent(filename)}`;
             if (userDir) previewUrl += `&userDir=${encodeURIComponent(userDir)}`;
+            if (currentPath && currentView === 'personal') previewUrl += `&dir=${encodeURIComponent(currentPath)}`;
             if (currentPassword) previewUrl += `&password=${encodeURIComponent(currentPassword)}`;
             
             const fileExt = filename.split('.').pop().toLowerCase();
@@ -2356,6 +2710,8 @@
             document.getElementById('share-file-name').value = filename;
             document.getElementById('share-user-dir').value = userDir || '';
             document.getElementById('share-url').value = '';
+            // 存储当前路径用于分享
+            document.getElementById('share-file-name').dataset.dir = currentPath && currentView === 'personal' ? currentPath : '';
             document.getElementById('share-modal').classList.add('show');
         }
 
@@ -2366,10 +2722,12 @@
         function handleShareFile(event) {
             event.preventDefault();
             const filename = document.getElementById('share-file-name').value;
+            const fileDir = document.getElementById('share-file-name').dataset.dir || '';
             const userDir = document.getElementById('share-user-dir').value;
             const expiry = document.getElementById('share-expiry').value;
             
             let body = `action=create_share&file=${encodeURIComponent(filename)}&expiry=${expiry}&userDir=${encodeURIComponent(userDir)}`;
+            if (fileDir) body += `&dir=${encodeURIComponent(fileDir)}`;
             if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
             
             fetch('share.php', {

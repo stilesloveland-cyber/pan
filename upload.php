@@ -108,7 +108,47 @@ if (!$userDir || (!file_exists($userDir) && !$isAdminUser)) {
     if ($userDir) mkdir($userDir, 0755, true);
 }
 
-// ========== 删除文件 ==========
+// ========== 获取当前目录路径（支持子文件夹） ==========
+$currentDir = $userDir;
+if (isset($_REQUEST['dir']) && !empty($_REQUEST['dir'])) {
+    $reqDir = safeJoinPath($userDir, $_REQUEST['dir']);
+    if (strpos($reqDir, $userDir) === 0) {
+        $currentDir = $reqDir;
+    }
+}
+
+// ========== 创建文件夹 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'create_folder') {
+    $folderName = isset($_POST['folder_name']) ? trim($_POST['folder_name']) : '';
+    if (empty($folderName)) {
+        echo json_encode(['success' => false, 'message' => '请输入文件夹名称']);
+        exit;
+    }
+    if (createFolder($currentDir, $folderName)) {
+        echo json_encode(['success' => true, 'message' => '文件夹创建成功']);
+    } else {
+        echo json_encode(['success' => false, 'message' => '文件夹创建失败（可能已存在）']);
+    }
+    exit;
+}
+
+// ========== 重命名 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'rename') {
+    $oldName = isset($_POST['old_name']) ? trim($_POST['old_name']) : '';
+    $newName = isset($_POST['new_name']) ? trim($_POST['new_name']) : '';
+    if (empty($oldName) || empty($newName)) {
+        echo json_encode(['success' => false, 'message' => '请提供原名称和新名称']);
+        exit;
+    }
+    if (renameFileOrFolder($currentDir, $oldName, $newName)) {
+        echo json_encode(['success' => true, 'message' => '重命名成功']);
+    } else {
+        echo json_encode(['success' => false, 'message' => '重命名失败（文件不存在或新名称已存在）']);
+    }
+    exit;
+}
+
+// ========== 删除文件/文件夹 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'delete') {
     $files = isset($_POST['files']) ? $_POST['files'] : (isset($_POST['file']) ? [$_POST['file']] : []);
     $userDirParam = isset($_POST['userDir']) ? $_POST['userDir'] : '';
@@ -125,19 +165,27 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
         $fileName = basename($file);
 
         if ($isPublicDelete) {
-            // 删除公共空间文件
             $filePath = PUBLIC_DIR . $fileName;
         } elseif ($isAdminUser && !empty($userDirParam)) {
-            // 管理员删除指定用户文件
             $filePath = BASE_UPLOAD_DIR . basename($userDirParam) . '/' . $fileName;
         } else {
-            // 普通用户删除自己的文件
-            $filePath = $userDir . $fileName;
+            // 普通用户：在当前目录（含子文件夹）中删除
+            $filePath = $currentDir . $fileName;
         }
 
-        if (file_exists($filePath) && is_file($filePath)) {
-            if (unlink($filePath)) {
-                $deletedCount++;
+        if (file_exists($filePath)) {
+            if (is_dir($filePath)) {
+                // 删除文件夹（递归）
+                $files = scandir($filePath);
+                foreach ($files as $f) {
+                    if ($f != '.' && $f != '..') {
+                        $subPath = $filePath . '/' . $f;
+                        is_dir($subPath) ? rmdir($subPath) : unlink($subPath);
+                    }
+                }
+                if (rmdir($filePath)) $deletedCount++;
+            } elseif (is_file($filePath)) {
+                if (unlink($filePath)) $deletedCount++;
             }
         }
     }
@@ -221,7 +269,12 @@ if (isset($_FILES['files'])) {
         }
 
         $uniqueName = uniqid() . '_' . $fileName;
-        $destination = $isPublic ? PUBLIC_DIR . $uniqueName : $userDir . $uniqueName;
+        if ($isPublic) {
+            $destination = PUBLIC_DIR . $uniqueName;
+        } else {
+            // 上传到当前子文件夹
+            $destination = $currentDir . $uniqueName;
+        }
 
         $targetDir = dirname($destination);
         if (!file_exists($targetDir)) {

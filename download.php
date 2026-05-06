@@ -31,14 +31,25 @@ if (!isset($_GET['file'])) {
 
 $fileName = basename($_GET['file']);
 $userDirParam = isset($_GET['userDir']) ? basename($_GET['userDir']) : '';
+$subDir = isset($_GET['dir']) ? trim($_GET['dir']) : '';
 
-// 确定文件路径
+// 确定文件路径（支持子文件夹）
+$basePath = '';
 if ($isAdminUser && !empty($userDirParam)) {
-    $filePath = BASE_UPLOAD_DIR . $userDirParam . '/' . $fileName;
+    $basePath = BASE_UPLOAD_DIR . $userDirParam . '/';
 } elseif ($userDir) {
-    $filePath = $userDir . $fileName;
+    $basePath = $userDir;
 } else {
     die('无法确定文件路径');
+}
+
+// 安全拼接子文件夹路径
+if (!empty($subDir)) {
+    $safeSubDir = str_replace(['..', '\\'], '', $subDir);
+    $safeSubDir = trim($safeSubDir, '/');
+    $filePath = $basePath . $safeSubDir . '/' . $fileName;
+} else {
+    $filePath = $basePath . $fileName;
 }
 
 // 安全检查：防止路径穿越
