@@ -331,7 +331,7 @@ function initFileInput() {
 
 function uploadToPublic() { fileInput.click(); fileInput.dataset.isPublic = 'true'; }
 
-const CHUNK_SIZE = 5 * 1024 * 1024; // 分片大小 5MB
+const CHUNK_SIZE = 10 * 1024 * 1024; // 分片大小 10MB
 let currentXhr = null; // 当前上传的 XHR，用于取消
 let currentChunkUpload = null; // 当前分片上传的状态
 
@@ -348,6 +348,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
 
     const state = { cancelled: false };
     currentChunkUpload = state;
+    console.log('[分片] 开始分片上传:', file.name, totalChunks + '片', file.size + 'bytes');
 
     for (let i = 0; i < totalChunks; i++) {
         if (state.cancelled) break;
@@ -368,6 +369,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
         if (currentPath && !isPublic) formData.append('dir', currentPath);
         formData.append('chunk', chunk);
 
+        console.log('[分片] 上传第', (i+1)+'/'+totalChunks, '片, 大小:', (end-start), 'bytes');
         // 上传分片（最多重试3次）
         let retries = 3;
         let success = false;
@@ -507,8 +509,10 @@ function uploadFiles(fileList, isPublic = false) {
 
     // 检查是否有大文件（>= 5MB）
     const hasLargeFile = Array.from(fileList).some(f => f.size >= CHUNK_SIZE);
+    console.log('[上传] 大文件检测:', hasLargeFile, '文件大小:', fileList[0]?.size, '分片阈值:', CHUNK_SIZE);
 
     if (!hasLargeFile) {
+        console.log('[上传] 走原始上传路径');
         // 所有文件都小，使用原始单次上传
         const formData = new FormData();
         for (let i = 0; i < fileList.length; i++) formData.append('files[]', fileList[i]);
@@ -538,6 +542,7 @@ function uploadFiles(fileList, isPublic = false) {
         xhr.open('POST', 'upload.php');
         xhr.send(formData);
     } else {
+        console.log('[上传] 走分片上传路径，文件数:', fileList.length);
         // 有大文件，使用分片上传（逐文件处理）
         (async () => {
             currentXhr = null;
