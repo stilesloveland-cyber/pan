@@ -340,6 +340,46 @@
         /* 文件夹图标 */
         .file-thumb.folder { color: var(--warning); background: #fffbeb; }
         .file-grid-thumb.folder { color: var(--warning); background: #fffbeb; }
+
+        /* 选中数量显示 */
+        .selected-count {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 600;
+            background: var(--primary-light);
+            padding: 2px 10px;
+            border-radius: 50px;
+        }
+
+        /* 排序栏 */
+        .sort-bar {
+            padding: 8px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            background: var(--bg);
+        }
+        .sort-bar .sort-select {
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        /* 分隔线 */
+        .sep-line {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+            display: inline-block;
+        }
+
+        /* 文件区操作栏响应式 */
+        @media (max-width: 768px) {
+            #file-actions-bar .search-box input { width: 100px !important; }
+            #file-actions-bar .btn-sm { padding: 4px 8px; font-size: 11px; }
+            #file-actions-bar .btn-sm i { margin-right: 2px; }
+            .sort-bar { padding: 6px 14px; }
+        }
         .sidebar-footer {
             padding: 16px 20px;
             border-top: 1px solid var(--border);
@@ -742,6 +782,26 @@
             align-items: center;
             gap: 6px;
             flex-wrap: wrap;
+        }
+        .section-actions .search-box input {
+            width: 140px;
+            padding: 5px 10px 5px 28px;
+            font-size: 12px;
+        }
+        .section-actions .search-box i {
+            left: 9px;
+            font-size: 12px;
+        }
+        .section-actions .view-toggle button {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+        .section-actions .sep-line {
+            width: 1px;
+            height: 18px;
+            background: var(--border);
+            display: inline-block;
+            margin: 0 2px;
         }
 
         .file-list-view {
@@ -1288,42 +1348,6 @@
                 </div>
 
                 <div class="content-body">
-                    <!-- 工具栏 -->
-                    <div class="toolbar">
-                        <div class="toolbar-left">
-                            <div class="view-toggle">
-                                <button class="active" data-view="list"><i class="fas fa-list"></i> 列表</button>
-                                <button data-view="grid"><i class="fas fa-th-large"></i> 图标</button>
-                            </div>
-                            <select id="sort-select" class="sort-select" onchange="sortFiles()">
-                                <option value="date-desc">按时间排序（最新优先）</option>
-                                <option value="date-asc">按时间排序（最早优先）</option>
-                                <option value="size-desc">按大小排序（从大到小）</option>
-                                <option value="size-asc">按大小排序（从小到大）</option>
-                                <option value="name-asc">按名称排序（A-Z）</option>
-                                <option value="name-desc">按名称排序（Z-A）</option>
-                            </select>
-                        </div>
-                        <div class="toolbar-right">
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="search-input" placeholder="搜索文件..." onkeyup="searchFiles()">
-                            </div>
-                            <button class="btn btn-sm" onclick="showNewFolderModal()" title="新建文件夹">
-                                <i class="fas fa-folder-plus"></i> 新建
-                            </button>
-                            <button class="btn btn-sm" onclick="selectAllFiles()">
-                                <i class="fas fa-check-square"></i> 全选
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()">
-                                <i class="fas fa-trash-alt"></i> 删除
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 面包屑导航 -->
-                    <div id="breadcrumb" class="breadcrumb" style="display: none; margin-bottom: 12px; font-size: 13px;"></div>
-
                     <!-- 上传区域 -->
                     <div class="upload-area" id="upload-area">
                         <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
@@ -1356,7 +1380,46 @@
                     <!-- 文件列表区域 -->
                     <div class="files-section">
                         <div class="section-header">
-                            <h2><i class="fas fa-folder-open"></i> 全部文件</h2>
+                            <h2><i class="fas fa-folder-open"></i> <span id="section-title-list">全部文件</span></h2>
+                            <div class="section-actions" id="file-actions-bar">
+                                <div class="view-toggle">
+                                    <button class="active" data-view="list"><i class="fas fa-list"></i></button>
+                                    <button data-view="grid"><i class="fas fa-th-large"></i></button>
+                                </div>
+                                <div class="search-box" style="display:inline-flex">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="search-input" placeholder="搜索..." onkeyup="searchFiles()" style="width:140px;">
+                                </div>
+                                <span class="sep-line"></span>
+                                <button class="btn btn-sm" onclick="showNewFolderModal()" title="新建文件夹">
+                                    <i class="fas fa-folder-plus"></i> 新建
+                                </button>
+                                <button class="btn btn-sm" onclick="showMoveSelectedModal()" id="btn-move-selected" title="移动到">
+                                    <i class="fas fa-folder-open"></i> 移动到
+                                </button>
+                                <button class="btn btn-sm" onclick="selectAllFiles()">
+                                    <i class="fas fa-check-square"></i> 全选
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteSelectedFiles()">
+                                    <i class="fas fa-trash-alt"></i> 删除
+                                </button>
+                                <span id="selected-count" class="selected-count" style="display:none;"></span>
+                            </div>
+                        </div>
+
+                        <!-- 面包屑导航 -->
+                        <div id="breadcrumb" class="breadcrumb" style="display: none; font-size: 13px;"></div>
+
+                        <!-- 排序栏 -->
+                        <div class="sort-bar">
+                            <select id="sort-select" class="sort-select" onchange="sortFiles()">
+                                <option value="date-desc">最新优先</option>
+                                <option value="date-asc">最早优先</option>
+                                <option value="size-desc">从大到小</option>
+                                <option value="size-asc">从小到大</option>
+                                <option value="name-asc">A-Z</option>
+                                <option value="name-desc">Z-A</option>
+                            </select>
                         </div>
                         <div class="file-list-view" id="file-list-view">
                             <ul id="file-list">
@@ -1803,40 +1866,100 @@
         }
 
         // ========== 移动文件 ==========
-        function showMoveModal(itemName) {
-            document.getElementById('move-item-name').value = itemName;
+        function loadFolderList(callback) {
+            let url = 'upload.php?action=list_folders';
+            if (currentPassword) url += `&password=${encodeURIComponent(currentPassword)}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const folders = data.success ? (data.folders || []) : [];
+                    callback(folders);
+                })
+                .catch(() => callback([]));
+        }
+
+        function showMoveModal(itemName, isBatch = false) {
+            document.getElementById('move-item-name').value = isBatch ? '__batch__' : itemName;
             const select = document.getElementById('move-target');
             select.innerHTML = '<option value="">根目录</option>';
             document.getElementById('move-modal').classList.add('show');
 
-            // 加载文件夹列表
-            let url = 'upload.php?action=list_folders';
-            if (currentPassword) url += `&password=${encodeURIComponent(currentPassword)}`;
-
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.folders) {
-                        data.folders.forEach(f => {
-                            const opt = document.createElement('option');
-                            opt.value = f.path;
-                            opt.textContent = '📁 ' + f.path;
-                            // 不能移动到自身
-                            if (f.path === currentPath) opt.disabled = true;
-                            select.appendChild(opt);
-                        });
-                    }
-                })
-                .catch(() => {});
+            loadFolderList(function(folders) {
+                folders.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.path;
+                    opt.textContent = '📁 ' + f.path;
+                    if (f.path === currentPath) opt.disabled = true;
+                    select.appendChild(opt);
+                });
+            });
         }
+
+        function showMoveSelectedModal() {
+            if (selectedFiles.length === 0) {
+                showToast('请先选择要移动的文件', true);
+                return;
+            }
+            showMoveModal('', true);
+        }
+
         function closeMoveModal() {
             document.getElementById('move-modal').classList.remove('show');
         }
+
         function handleMove(event) {
             event.preventDefault();
-            const itemName = document.getElementById('move-item-name').value;
+            const itemVal = document.getElementById('move-item-name').value;
             const targetDir = document.getElementById('move-target').value;
 
+            // 批量移动
+            if (itemVal === '__batch__') {
+                if (selectedFiles.length === 0) {
+                    alert('没有选中的文件');
+                    return;
+                }
+                let successCount = 0;
+                let failCount = 0;
+                let completed = 0;
+                const total = selectedFiles.length;
+
+                selectedFiles.forEach((filename, idx) => {
+                    let body = `action=move&item=${encodeURIComponent(filename)}&target_dir=${encodeURIComponent(targetDir)}`;
+                    if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
+                    if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
+
+                    fetch('upload.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        completed++;
+                        if (data.success) successCount++;
+                        else failCount++;
+                        if (completed === total) {
+                            closeMoveModal();
+                            selectedFiles = [];
+                            refreshFileList();
+                            showToast(`移动完成：成功 ${successCount} 个${failCount > 0 ? '，失败 ' + failCount + ' 个' : ''}`);
+                        }
+                    })
+                    .catch(() => {
+                        completed++;
+                        failCount++;
+                        if (completed === total) {
+                            closeMoveModal();
+                            refreshFileList();
+                            showToast(`移动完成：成功 ${successCount} 个，失败 ${failCount} 个`, true);
+                        }
+                    });
+                });
+                return;
+            }
+
+            // 单个移动
+            const itemName = itemVal;
             let body = `action=move&item=${encodeURIComponent(itemName)}&target_dir=${encodeURIComponent(targetDir)}`;
             if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
             if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
@@ -2091,6 +2214,8 @@
                         updateSpaceUsage(data);
                         renderFiles();
                         updateBreadcrumb();
+                        selectedFiles = [];
+                        updateSelectionUI();
                     } else if (data.message && data.message.includes('登录')) {
                         showLogin();
                     }
@@ -2190,6 +2315,7 @@
 
                     document.getElementById('search-input').value = '';
                     selectedFiles = [];
+                    updateSelectionUI();
 
                     // 移动端自动收起侧边栏
                     if (window.innerWidth <= 768) {
@@ -2558,16 +2684,29 @@
             } else {
                 selectedFiles.splice(index, 1);
             }
+            updateSelectionUI();
+        }
+
+        // 更新选中状态的 UI
+        function updateSelectionUI() {
+            const count = selectedFiles.length;
+            const el = document.getElementById('selected-count');
+            if (count > 0) {
+                el.textContent = `已选 ${count} 项`;
+                el.style.display = 'inline-block';
+            } else {
+                el.style.display = 'none';
+            }
         }
 
         // 全选文件
         function selectAllFiles() {
             const currentFiles = currentView === 'personal' ? files : publicFiles;
             selectedFiles = currentFiles.map(file => file.filename);
-            // 更新复选框状态
             document.querySelectorAll('.file-checkbox').forEach(checkbox => {
                 checkbox.checked = true;
             });
+            updateSelectionUI();
         }
 
         // 删除选中文件
