@@ -132,6 +132,54 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_folder') {
     exit;
 }
 
+// ========== 获取文件夹列表（用于移动弹窗） ==========
+if (isset($_GET['action']) && $_GET['action'] === 'list_folders') {
+    $allFolders = [];
+    if ($userDir) {
+        $allFolders = getAllFoldersRecursive($userDir, $userDir, '');
+    }
+    echo json_encode(['success' => true, 'folders' => $allFolders]);
+    exit;
+}
+
+// ========== 移动文件/文件夹 ==========
+if (isset($_POST['action']) && $_POST['action'] === 'move') {
+    $targetDir = isset($_POST['target_dir']) ? trim($_POST['target_dir']) : '';
+    $itemName = isset($_POST['item']) ? basename(trim($_POST['item'])) : '';
+
+    if (empty($itemName) || empty($targetDir)) {
+        echo json_encode(['success' => false, 'message' => '缺少参数']);
+        exit;
+    }
+
+    // 安全拼接目标路径
+    $targetPath = safeJoinPath($userDir, $targetDir);
+    if (strpos($targetPath, $userDir) !== 0) {
+        echo json_encode(['success' => false, 'message' => '无效的目标路径']);
+        exit;
+    }
+
+    $sourcePath = $currentDir . $itemName;
+    $destPath = $targetPath . $itemName;
+
+    if (!file_exists($sourcePath)) {
+        echo json_encode(['success' => false, 'message' => '源文件不存在']);
+        exit;
+    }
+    if (file_exists($destPath)) {
+        echo json_encode(['success' => false, 'message' => '目标位置已存在同名文件']);
+        exit;
+    }
+
+    if (rename($sourcePath, $destPath)) {
+        clearSizeCache();
+        echo json_encode(['success' => true, 'message' => '移动成功']);
+    } else {
+        echo json_encode(['success' => false, 'message' => '移动失败']);
+    }
+    exit;
+}
+
 // ========== 重命名 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'rename') {
     $oldName = isset($_POST['old_name']) ? trim($_POST['old_name']) : '';

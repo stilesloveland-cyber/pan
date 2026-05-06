@@ -437,6 +437,30 @@ function getDirectoryContents($dir) {
     return $items;
 }
 
+/**
+ * 递归获取所有子文件夹（用于移动文件时选择目标）
+ */
+function getAllFoldersRecursive($baseDir, $currentDir, $relativePath) {
+    $result = [];
+    $handle = opendir($currentDir);
+    if ($handle) {
+        while (false !== ($entry = readdir($handle))) {
+            if ($entry != '.' && $entry != '..' && is_dir($currentDir . $entry)) {
+                $fullPath = $currentDir . $entry . '/';
+                $relPath = $relativePath ? $relativePath . '/' . $entry : $entry;
+                $result[] = [
+                    'name' => $entry,
+                    'path' => $relPath
+                ];
+                $subDirs = getAllFoldersRecursive($baseDir, $fullPath, $relPath);
+                $result = array_merge($result, $subDirs);
+            }
+        }
+        closedir($handle);
+    }
+    return $result;
+}
+
 function cleanExpiredShares() {
     if (!is_dir(SHARE_DIR)) return;
     $files = scandir(SHARE_DIR);
