@@ -86,7 +86,7 @@
 #### 从 GitHub 克隆部署
 
 ```bash
-git clone https://github.com/你的用户名/你的仓库名.git pan
+git clone https://github.com/stilesloveland-cyber/pan.git
 cd pan
 docker-compose up -d
 ```
