@@ -147,8 +147,9 @@ if (isset($_GET['id'])) {
 
     $mimeType = isset($mimeTypes[$fileExt]) ? $mimeTypes[$fileExt] : 'application/octet-stream';
 
+    $encodedName = rawurlencode($originalName);
     header('Content-Type: ' . $mimeType);
-    header('Content-Disposition: inline; filename="' . addslashes($originalName) . '"');
+    header("Content-Disposition: inline; filename*=UTF-8''$encodedName; filename=\"$encodedName\"");
     header('Content-Length: ' . filesize($realFilePath));
     header('X-Content-Type-Options: nosniff');
 

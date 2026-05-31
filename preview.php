@@ -122,7 +122,8 @@ if ($isStreamable && isset($_SERVER['HTTP_RANGE'])) {
     header("Content-Range: bytes $start-$end/$fileSize");
     header("Content-Length: $length");
     header('Content-Type: ' . $mimeType);
-    header('Content-Disposition: inline; filename="' . addslashes($originalName) . '"');
+    $encodedName = rawurlencode($originalName);
+    header("Content-Disposition: inline; filename*=UTF-8''$encodedName; filename=\"$encodedName\"");
     header('X-Content-Type-Options: nosniff');
     header('Accept-Ranges: bytes');
     header('Cache-Control: no-cache');
@@ -139,12 +140,14 @@ if ($isStreamable && isset($_SERVER['HTTP_RANGE'])) {
     }
     fclose($fp);
 } else {
+    $encodedName = rawurlencode($originalName);
     header('Content-Type: ' . $mimeType);
-    header('Content-Disposition: inline; filename="' . addslashes($originalName) . '"');
+    header("Content-Disposition: inline; filename*=UTF-8''$encodedName; filename=\"$encodedName\"");
     header('Content-Length: ' . $fileSize);
     header('X-Content-Type-Options: nosniff');
     header('Accept-Ranges: bytes');
     header('Cache-Control: no-cache');
+    header('X-Accel-Redirect: /protected-uploads/' . ltrim(str_replace(BASE_UPLOAD_DIR, '', $realFilePath), '/'));
 
     readfile($realFilePath);
 }

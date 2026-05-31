@@ -219,15 +219,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete') {
 
         if (file_exists($filePath)) {
             if (is_dir($filePath)) {
-                // 删除文件夹（递归）
-                $files = scandir($filePath);
-                foreach ($files as $f) {
-                    if ($f != '.' && $f != '..') {
-                        $subPath = $filePath . '/' . $f;
-                        is_dir($subPath) ? rmdir($subPath) : unlink($subPath);
-                    }
-                }
-                if (rmdir($filePath)) $deletedCount++;
+                if (rrmdir($filePath)) $deletedCount++;
             } elseif (is_file($filePath)) {
                 if (unlink($filePath)) $deletedCount++;
             }
@@ -262,6 +254,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'upload_chunk') {
 
     if (empty($uploadId) || empty($fileName) || !isset($_FILES['chunk'])) {
         echo json_encode(['success' => false, 'message' => '参数不完整']);
+        exit;
+    }
+
+    if (isBlockedExtension($fileName)) {
+        echo json_encode(['success' => false, 'message' => '该文件类型不允许上传']);
         exit;
     }
 
@@ -315,6 +312,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
         exit;
     }
 
+    if (isBlockedExtension($fileName)) {
+        echo json_encode(['success' => false, 'message' => '该文件类型不允许上传']);
+        exit;
+    }
+
     $chunkDir = CACHE_DIR . 'chunks/' . $uploadId . '/';
     if (!is_dir($chunkDir)) {
         echo json_encode(['success' => false, 'message' => '分片数据不存在']);
@@ -350,9 +352,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
 
     for ($i = 0; $i < $totalChunks; $i++) {
         $chunkFile = $chunkDir . $i;
-        $chunkData = file_get_contents($chunkFile);
-        fwrite($fp, $chunkData);
-        unlink($chunkFile); // 逐片删除以释放空间
+        $cfp = fopen($chunkFile, 'rb');
+        stream_copy_to_stream($cfp, $fp);
+        fclose($cfp);
+        unlink($chunkFile);
     }
     fclose($fp);
 
@@ -438,6 +441,11 @@ if (isset($_FILES['files'])) {
 
         if ($fileError !== UPLOAD_ERR_OK) {
             $errors[] = "文件 {$fileName} 上传出错: " . getUploadErrorMsg($fileError);
+            continue;
+        }
+
+        if (!isSafeFile($fileTmp, $fileName)) {
+            $errors[] = "文件 {$fileName} 类型不允许上传";
             continue;
         }
 

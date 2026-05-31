@@ -67,18 +67,44 @@ if (!$isAdminUser && $userDir) {
 }
 
 $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $fileName);
+$encodedName = rawurlencode($originalName);
+$fileSize = filesize($realFilePath);
 
-// 安全地设置下载头
 header('Content-Description: File Transfer');
 header('Content-Type: application/octet-stream');
-header('Content-Disposition: attachment; filename="' . addslashes($originalName) . '"');
+header("Content-Disposition: attachment; filename*=UTF-8''$encodedName; filename=\"$encodedName\"");
 header('Content-Transfer-Encoding: binary');
 header('Expires: 0');
 header('Cache-Control: must-revalidate');
 header('Pragma: public');
-header('Content-Length: ' . filesize($realFilePath));
+header('Accept-Ranges: bytes');
+header('X-Accel-Redirect: /protected-uploads/' . ltrim(str_replace(BASE_UPLOAD_DIR, '', $realFilePath), '/'));
 
-ob_clean();
-flush();
+if (isset($_SERVER['HTTP_RANGE'])) {
+    preg_match('/bytes=(\d+)-(\d*)/', $_SERVER['HTTP_RANGE'], $matches);
+    $start = intval($matches[1]);
+    $end = isset($matches[2]) && $matches[2] !== '' ? intval($matches[2]) : $fileSize - 1;
+    if ($end >= $fileSize) $end = $fileSize - 1;
+    $length = $end - $start + 1;
 
-readfile($realFilePath);
+    header('HTTP/1.1 206 Partial Content');
+    header("Content-Range: bytes $start-$end/$fileSize");
+    header("Content-Length: $length");
+
+    $fp = fopen($realFilePath, 'rb');
+    fseek($fp, $start);
+    $sent = 0;
+    $chunkSize = 8192;
+    while ($sent < $length && !feof($fp)) {
+        $read = min($chunkSize, $length - $sent);
+        echo fread($fp, $read);
+        $sent += $read;
+        flush();
+    }
+    fclose($fp);
+} else {
+    header('Content-Length: ' . $fileSize);
+    ob_clean();
+    flush();
+    readfile($realFilePath);
+}

@@ -1,55 +1,96 @@
 <?php
-/**
- * WPAN 个人网盘系统 - 全局配置
- * 
- * 统一管理路径、配额、文件类型限制等设置
- */
-
-// ========== 路径配置 ==========
 define('BASE_UPLOAD_DIR', '/var/www/uploads/');
 define('USERS_FILE', BASE_UPLOAD_DIR . 'users.json');
 define('SHARE_DIR', BASE_UPLOAD_DIR . 'shares/');
 define('PUBLIC_DIR', BASE_UPLOAD_DIR . 'public/');
 define('CACHE_DIR', BASE_UPLOAD_DIR . 'cache/');
 define('THUMB_DIR', BASE_UPLOAD_DIR . 'thumbs/');
+define('SETTINGS_FILE', BASE_UPLOAD_DIR . 'settings.json');
 
-// ========== 空间配额 ==========
-define('MAX_TOTAL_SIZE', 10 * 1024 * 1024 * 1024);   // 全局 10GB
-define('MAX_USER_SIZE', 2 * 1024 * 1024 * 1024);     // 个人 2GB
-define('MAX_PUBLIC_SIZE', 5 * 1024 * 1024 * 1024);   // 公共 5GB
-
-// ========== 上传限制 ==========
-define('MAX_FILE_SIZE', 10 * 1024 * 1024 * 1024);    // 单文件最大 10GB
-define('MAX_FILES_PER_UPLOAD', 50);                   // 单次最多上传 50 个文件
-
-// ========== 文件类型黑名单（禁止上传）=========
-$BLOCKED_EXTENSIONS = [
-    'exe', 'msi', 'bat', 'cmd', 'com', 'scr',
-    'php', 'phtml', 'php3', 'php4', 'php5', 'php7',
-    'py', 'pl', 'sh', 'bash', 'zsh',
-    'jar', 'war',
-    'asp', 'aspx', 'cgi', 'jsp',
-    'dll', 'sys', 'vbs', 'vbe', 'jse',
+$DEFAULT_SETTINGS = [
+    'max_total_size' => 10 * 1024 * 1024 * 1024,
+    'max_user_size' => 2 * 1024 * 1024 * 1024,
+    'max_public_size' => 5 * 1024 * 1024 * 1024,
+    'max_file_size' => 10 * 1024 * 1024 * 1024,
+    'max_files_per_upload' => 50,
+    'chunk_size' => 5 * 1024 * 1024,
+    'blocked_extensions' => [
+        'exe', 'msi', 'bat', 'cmd', 'com', 'scr',
+        'php', 'phtml', 'php3', 'php4', 'php5', 'php7',
+        'py', 'pl', 'sh', 'bash', 'zsh',
+        'jar', 'war',
+        'asp', 'aspx', 'cgi', 'jsp',
+        'dll', 'sys', 'vbs', 'vbe', 'jse',
+    ],
+    'session_lifetime' => 86400 * 7,
+    'cache_ttl' => 30,
+    'thumb_width' => 200,
+    'thumb_height' => 200,
 ];
 
-// ========== 会话配置 ==========
-define('SESSION_LIFETIME', 86400 * 7);                // Session 7 天过期
-define('CACHE_TTL', 30);                               // 空间缓存 30 秒
+function getSettings() {
+    global $DEFAULT_SETTINGS;
+    if (file_exists(SETTINGS_FILE)) {
+        $saved = json_decode(file_get_contents(SETTINGS_FILE), true);
+        if (is_array($saved)) return array_merge($DEFAULT_SETTINGS, $saved);
+    }
+    return $DEFAULT_SETTINGS;
+}
 
-// ========== 缩略图配置 ==========
-define('THUMB_WIDTH', 200);
-define('THUMB_HEIGHT', 200);
+function saveSettings($settings) {
+    file_put_contents(SETTINGS_FILE, json_encode($settings, JSON_PRETTY_PRINT));
+}
 
-// ========== 文件预览支持类型 ==========
+function getServerDiskInfo() {
+    $total = @disk_total_space(BASE_UPLOAD_DIR);
+    $free = @disk_free_space(BASE_UPLOAD_DIR);
+    return [
+        'total' => $total !== false ? $total : 0,
+        'free' => $free !== false ? $free : 0,
+        'used' => $total !== false ? $total - $free : 0,
+    ];
+}
+
+$settings = getSettings();
+
+define('MAX_TOTAL_SIZE', $settings['max_total_size']);
+define('MAX_USER_SIZE', $settings['max_user_size']);
+define('MAX_PUBLIC_SIZE', $settings['max_public_size']);
+define('MAX_FILE_SIZE', $settings['max_file_size']);
+define('MAX_FILES_PER_UPLOAD', $settings['max_files_per_upload']);
+define('CHUNK_SIZE', $settings['chunk_size']);
+define('SESSION_LIFETIME', $settings['session_lifetime']);
+define('CACHE_TTL', $settings['cache_ttl']);
+define('THUMB_WIDTH', $settings['thumb_width']);
+define('THUMB_HEIGHT', $settings['thumb_height']);
+
+$BLOCKED_EXTENSIONS = $settings['blocked_extensions'];
+
 $IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
 $VIDEO_EXTS = ['mp4', 'webm', 'avi', 'mov'];
 $AUDIO_EXTS = ['mp3', 'wav', 'flac', 'ogg', 'aac'];
 $TEXT_EXTS  = ['txt', 'md', 'html', 'css', 'js', 'json', 'xml', 'php', 'log', 'yaml', 'yml', 'conf', 'ini', 'cfg'];
 $OFFICE_EXTS = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 
-// ========== 辅助函数 ==========
 function isBlockedExtension($filename) {
     global $BLOCKED_EXTENSIONS;
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     return in_array($ext, $BLOCKED_EXTENSIONS);
+}
+
+function isSafeFile($tmpPath, $filename) {
+    if (isBlockedExtension($filename)) return false;
+    if (!file_exists($tmpPath)) return true;
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($tmpPath);
+    $blockedMimes = [
+        'text/x-php', 'application/x-php', 'application/x-httpd-php',
+        'application/x-httpd-php-source', 'application/x-sh',
+        'text/x-shellscript', 'application/x-executable',
+        'application/x-dosexec'
+    ];
+    foreach ($blockedMimes as $b) {
+        if (strpos($mime, $b) !== false) return false;
+    }
+    return true;
 }

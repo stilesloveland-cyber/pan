@@ -39,9 +39,9 @@ $fileNames = array_map('basename', $fileNames);
 
 // 子文件夹路径
 $subDir = isset($_GET['dir']) ? trim($_GET['dir']) : '';
+$safeSubDir = '';
 if (!empty($subDir)) {
-    $safeSubDir = str_replace(['..', '\\'], '', $subDir);
-    $safeSubDir = trim($safeSubDir, '/');
+    $safeSubDir = trim(safeJoinPath('', $subDir), '/');
 }
 
 // 创建临时 ZIP 文件

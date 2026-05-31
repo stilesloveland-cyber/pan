@@ -1,0 +1,13 @@
+services:
+  pan:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "6666:80"
+    volumes:
+      - pan-data:/var/www/uploads
+    restart: unless-stopped
+
+volumes:
+  pan-data:

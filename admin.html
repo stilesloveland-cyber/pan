@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - XX网盘</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-layout{display:flex;min-height:100vh}
+        .admin-sidebar{width:220px;background:var(--sidebar-bg);padding:20px 0;flex-shrink:0;border-right:1px solid var(--border)}
+        .admin-sidebar .logo{padding:0 20px 20px;font-size:18px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:10px}
+        .admin-sidebar .logo i{font-size:24px}
+        .admin-nav{list-style:none;padding:0;margin:0}
+        .admin-nav li a{display:flex;align-items:center;gap:10px;padding:12px 20px;color:var(--text-secondary);text-decoration:none;transition:all .2s}
+        .admin-nav li a:hover,.admin-nav li a.active{background:var(--primary-light);color:var(--primary)}
+        .admin-nav li a i{width:20px;text-align:center}
+        .admin-content{flex:1;padding:30px;overflow-y:auto;max-height:100vh}
+        .admin-content h2{font-size:20px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+        .card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+        .card h3{font-size:16px;margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+        .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
+        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:15px;text-align:center}
+        .stat-card .stat-value{font-size:24px;font-weight:700;color:var(--primary)}
+        .stat-card .stat-label{font-size:13px;color:var(--text-muted);margin-top:5px}
+        .form-group{margin-bottom:15px}
+        .form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--text-secondary)}
+        .form-group input,.form-group select{width:100%;padding:10px;border:2px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text-primary);font-size:14px;box-sizing:border-box}
+        .form-group input:focus,.form-group select:focus{border-color:var(--primary);outline:none}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+        .btn{padding:8px 16px;border-radius:var(--radius);border:none;cursor:pointer;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover{opacity:.9}
+        .btn-danger{background:var(--danger);color:#fff}
+        .btn-danger:hover{opacity:.9}
+        .btn-secondary{background:var(--border);color:var(--text-primary)}
+        .btn-sm{padding:5px 10px;font-size:12px}
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:12px;background:var(--primary-light);color:var(--primary);margin:3px}
+        .tag .remove{cursor:pointer;font-weight:700;margin-left:2px}
+        .tag .remove:hover{color:var(--danger)}
+        .ext-input-wrap{display:flex;gap:8px;margin-bottom:10px}
+        .ext-input-wrap input{flex:1}
+        table{width:100%;border-collapse:collapse}
+        table th,table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:13px}
+        table th{font-weight:600;color:var(--text-secondary);background:var(--bg)}
+        .badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+        .badge-admin{background:#ffe0b2;color:#e65100}
+        .badge-user{background:#e3f2fd;color:#1565c0}
+        .disk-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:8px 0}
+        .disk-bar-fill{height:100%;border-radius:4px;transition:width .3s}
+        .section{display:none}
+        .section.active{display:block}
+        .hint{font-size:12px;color:var(--text-muted);margin-top:4px}
+        @media(max-width:768px){
+            .admin-layout{flex-direction:column}
+            .admin-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border)}
+            .form-row{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <div class="admin-sidebar">
+            <div class="logo"><i class="fas fa-cog"></i> 管理后台</div>
+            <ul class="admin-nav">
+                <li><a href="#" class="active" data-section="info"><i class="fas fa-info-circle"></i> 系统信息</a></li>
+                <li><a href="#" data-section="settings"><i class="fas fa-sliders-h"></i> 参数设置</a></li>
+                <li><a href="#" data-section="extensions"><i class="fas fa-ban"></i> 文件类型黑名单</a></li>
+                <li><a href="#" data-section="users"><i class="fas fa-users-cog"></i> 用户管理</a></li>
+                <li><a href="index.html"><i class="fas fa-arrow-left"></i> 返回网盘</a></li>
+            </ul>
+        </div>
+        <div class="admin-content">
+            <div id="section-info" class="section active">
+                <h2><i class="fas fa-info-circle"></i> 系统信息</h2>
+                <div class="stat-grid" id="stat-grid"></div>
+                <div class="card">
+                    <h3>磁盘使用</h3>
+                    <div id="disk-info"></div>
+                </div>
+            </div>
+
+            <div id="section-settings" class="section">
+                <h2><i class="fas fa-sliders-h"></i> 参数设置</h2>
+                <form id="settings-form">
+                    <div class="card">
+                        <h3>空间配额</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>全局空间上限 (字节)</label>
+                                <input type="number" id="s-max_total_size" min="0">
+                                <div class="hint" id="hint-max-total"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>个人空间上限 (字节)</label>
+                                <input type="number" id="s-max_user_size" min="0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>公共空间上限 (字节)</label>
+                                <input type="number" id="s-max_public_size" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>单文件最大 (字节)</label>
+                                <input type="number" id="s-max_file_size" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>上传限制</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>单次最多文件数</label>
+                                <input type="number" id="s-max_files_per_upload" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label>分片大小 (字节)</label>
+                                <input type="number" id="s-chunk_size" min="1048576">
+                                <div class="hint">建议 5MB (5242880) ~ 10MB (10485760)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>会话与缓存</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Session 过期时间 (秒)</label>
+                                <input type="number" id="s-session_lifetime" min="60">
+                                <div class="hint">默认 604800 (7天)</div>
+                            </div>
+                            <div class="form-group">
+                                <label>空间缓存 TTL (秒)</label>
+                                <input type="number" id="s-cache_ttl" min="5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>缩略图</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>缩略图宽度 (px)</label>
+                                <input type="number" id="s-thumb_width" min="50" max="500">
+                            </div>
+                            <div class="form-group">
+                                <label>缩略图高度 (px)</label>
+                                <input type="number" id="s-thumb_height" min="50" max="500">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存设置</button>
+                </form>
+            </div>
+
+            <div id="section-extensions" class="section">
+                <h2><i class="fas fa-ban"></i> 文件类型黑名单</h2>
+                <div class="card">
+                    <h3>禁止上传的文件扩展名</h3>
+                    <div class="ext-input-wrap">
+                        <input type="text" id="new-ext" placeholder="输入扩展名，如 docx">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addExtension()"><i class="fas fa-plus"></i> 添加</button>
+                    </div>
+                    <div id="ext-tags"></div>
+                </div>
+            </div>
+
+            <div id="section-users" class="section">
+                <h2><i class="fas fa-users-cog"></i> 用户管理</h2>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr><th>用户ID</th><th>角色</th><th>注册时间</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="users-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reset-pwd-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+        <div style="background:var(--card-bg);border-radius:var(--radius);padding:24px;width:360px;max-width:90%">
+            <h3 style="margin-bottom:15px">重置密码</h3>
+            <input type="hidden" id="reset-user-id">
+            <div class="form-group"><label>新密码</label><input type="text" id="reset-new-pwd"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+                <button class="btn btn-secondary" onclick="closeResetModal()">取消</button>
+                <button class="btn btn-primary" onclick="doResetPassword()">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let currentSettings = {};
+    let currentExtensions = [];
+
+    function formatBytes(b) {
+        if (b === 0) return '0 B';
+        const k = 1024, s = ['B','KB','MB','GB','TB'];
+        const i = Math.floor(Math.log(b) / Math.log(k));
+        return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + s[i];
+    }
+
+    function formatDate(ts) {
+        if (!ts) return '-';
+        return new Date(ts * 1000).toLocaleString('zh-CN');
+    }
+
+    function showToast(msg, isError) {
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.innerHTML = '<i class="fas ' + (isError ? 'fa-exclamation-circle' : 'fa-check-circle') + '"></i> ' + msg;
+        if (isError) t.style.background = 'var(--danger)';
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.transition = 'all .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    document.querySelectorAll('.admin-nav a[data-section]').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            document.querySelectorAll('.admin-nav a').forEach(x => x.classList.remove('active'));
+            a.classList.add('active');
+            document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+            document.getElementById('section-' + a.dataset.section).classList.add('active');
+            if (a.dataset.section === 'users') loadUsers();
+        });
+    });
+
+    function loadSettings() {
+        fetch('admin.php?action=get_settings').then(r => r.json()).then(data => {
+            if (!data.success) { showToast(data.message, true); return; }
+            currentSettings = data.settings;
+            currentExtensions = data.settings.blocked_extensions || [];
+
+            const grid = document.getElementById('stat-grid');
+            grid.innerHTML = '<div class="stat-card"><div class="stat-value">' + data.php_version + '</div><div class="stat-label">PHP 版本</div></div><div class="stat-card"><div class="stat-value">' + data.user_count + '</div><div class="stat-label">用户总数</div></div><div class="stat-card"><div class="stat-value">' + formatBytes(data.disk.total) + '</div><div class="stat-label">磁盘总容量</div></div><div class="stat-card"><div class="stat-value">' + formatBytes(data.disk.free) + '</div><div class="stat-label">磁盘剩余</div></div>';
+
+            const diskInfo = document.getElementById('disk-info');
+            const usedPct = data.disk.total > 0 ? ((data.disk.used / data.disk.total) * 100).toFixed(1) : 0;
+            const barColor = usedPct > 90 ? 'var(--danger)' : usedPct > 70 ? 'var(--warning)' : 'var(--primary)';
+            diskInfo.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:13px"><span>已用 ' + formatBytes(data.disk.used) + '</span><span>' + usedPct + '%</span></div><div class="disk-bar"><div class="disk-bar-fill" style="width:' + usedPct + '%;background:' + barColor + '"></div></div><div style="font-size:12px;color:var(--text-muted)">空间配额上限不能超过磁盘总容量的 50% (' + formatBytes(data.max_allowed_total) + ')</div>';
+
+            document.getElementById('hint-max-total').textContent = '最大允许: ' + formatBytes(data.max_allowed_total);
+
+            const intFields = ['max_total_size','max_user_size','max_public_size','max_file_size','max_files_per_upload','chunk_size','session_lifetime','cache_ttl','thumb_width','thumb_height'];
+            intFields.forEach(f => {
+                const el = document.getElementById('s-' + f);
+                if (el) el.value = data.settings[f];
+            });
+
+            renderExtensions();
+        });
+    }
+
+    document.getElementById('settings-form').addEventListener('submit', e => {
+        e.preventDefault();
+        const intFields = ['max_total_size','max_user_size','max_public_size','max_file_size','max_files_per_upload','chunk_size','session_lifetime','cache_ttl','thumb_width','thumb_height'];
+        const data = {};
+        intFields.forEach(f => { data[f] = parseInt(document.getElementById('s-' + f).value) || 0; });
+        data.blocked_extensions = currentExtensions;
+
+        fetch('admin.php?action=save_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(r => r.json()).then(res => {
+            if (res.success) { showToast('设置已保存'); loadSettings(); }
+            else showToast(res.message, true);
+        });
+    });
+
+    function renderExtensions() {
+        const el = document.getElementById('ext-tags');
+        el.innerHTML = currentExtensions.map(ext => '<span class="tag">.' + ext + '<span class="remove" onclick="removeExtension(\'' + ext + '\')">&times;</span></span>').join('');
+    }
+
+    function addExtension() {
+        const input = document.getElementById('new-ext');
+        let ext = input.value.trim().toLowerCase().replace(/^\./, '');
+        if (!ext) return;
+        if (currentExtensions.includes(ext)) { showToast('该扩展名已存在', true); return; }
+        currentExtensions.push(ext);
+        input.value = '';
+        saveExtensions();
+    }
+
+    document.getElementById('new-ext').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addExtension(); }
+    });
+
+    function removeExtension(ext) {
+        currentExtensions = currentExtensions.filter(e => e !== ext);
+        saveExtensions();
+    }
+
+    function saveExtensions() {
+        renderExtensions();
+        fetch('admin.php?action=save_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.assign({}, currentSettings, { blocked_extensions: currentExtensions }))
+        }).then(r => r.json()).then(res => {
+            if (res.success) showToast('黑名单已更新');
+            else showToast(res.message, true);
+        });
+    }
+
+    function loadUsers() {
+        fetch('admin.php?action=get_users').then(r => r.json()).then(data => {
+            if (!data.success) return;
+            const tbody = document.getElementById('users-tbody');
+            tbody.innerHTML = data.users.map(u => '<tr><td>' + u.id + '</td><td><span class="badge badge-' + u.role + '">' + (u.role === 'admin' ? '管理员' : '用户') + '</span></td><td>' + formatDate(u.registered) + '</td><td>' + (u.id !== 'admin' ? '<button class="btn btn-sm btn-secondary" onclick="toggleRole(\'' + u.id + '\',\'' + u.role + '\')"><i class="fas fa-user-shield"></i> ' + (u.role === 'admin' ? '降级' : '升级') + '</button> <button class="btn btn-sm btn-secondary" onclick="showResetModal(\'' + u.id + '\')"><i class="fas fa-key"></i> 重置密码</button> <button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.id + '\')"><i class="fas fa-trash-alt"></i></button>' : '<span style="color:var(--text-muted);font-size:12px">默认管理员</span>') + '</td></tr>').join('');
+        });
+    }
+
+    function toggleRole(userId, currentRole) {
+        const newRole = currentRole === 'admin' ? 'user' : 'admin';
+        if (!confirm('确定要将该用户角色改为 ' + (newRole === 'admin' ? '管理员' : '普通用户') + ' 吗？')) return;
+        const fd = new FormData();
+        fd.append('user_id', userId);
+        fd.append('role', newRole);
+        fetch('admin.php?action=change_user_role', { method: 'POST', body: fd })
+            .then(r => r.json()).then(data => {
+                if (data.success) { showToast('角色已更新'); loadUsers(); }
+                else showToast(data.message, true);
+            });
+    }
+
+    function deleteUser(userId) {
+        if (!confirm('确定要删除用户 ' + userId + ' 吗？此操作不可恢复！')) return;
+        const fd = new FormData();
+        fd.append('user_id', userId);
+        fetch('admin.php?action=delete_user', { method: 'POST', body: fd })
+            .then(r => r.json()).then(data => {
+                if (data.success) { showToast('用户已删除'); loadUsers(); }
+                else showToast(data.message, true);
+            });
+    }
+
+    function showResetModal(userId) {
+        document.getElementById('reset-user-id').value = userId;
+        document.getElementById('reset-new-pwd').value = '';
+        document.getElementById('reset-pwd-modal').style.display = 'flex';
+    }
+
+    function closeResetModal() {
+        document.getElementById('reset-pwd-modal').style.display = 'none';
+    }
+
+    function doResetPassword() {
+        const userId = document.getElementById('reset-user-id').value;
+        const newPwd = document.getElementById('reset-new-pwd').value;
+        if (!newPwd) { showToast('请输入新密码', true); return; }
+        const fd = new FormData();
+        fd.append('user_id', userId);
+        fd.append('new_password', newPwd);
+        fetch('admin.php?action=reset_user_password', { method: 'POST', body: fd })
+            .then(r => r.json()).then(data => {
+                if (data.success) { showToast('密码已重置'); closeResetModal(); }
+                else showToast(data.message, true);
+            });
+    }
+
+    loadSettings();
+    </script>
+</body>
+</html>

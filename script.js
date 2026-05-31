@@ -113,6 +113,8 @@ function showMain() {
     const adminBadge = document.getElementById('admin-badge');
     adminBadge.style.display = isAdmin ? 'inline-block' : 'none';
     document.getElementById('user-id').textContent = isAdmin ? '管理员' : '用户';
+    const adminNavItem = document.getElementById('admin-nav-item');
+    if (adminNavItem) adminNavItem.style.display = isAdmin ? 'block' : 'none';
 }
 
 function handleLogout() {
@@ -331,13 +333,10 @@ function initFileInput() {
 
 function uploadToPublic() { fileInput.click(); fileInput.dataset.isPublic = 'true'; }
 
-const CHUNK_SIZE = 10 * 1024 * 1024; // 分片大小 10MB
-let currentXhr = null; // 当前上传的 XHR，用于取消
-let currentChunkUpload = null; // 当前分片上传的状态
+const CHUNK_SIZE = 5 * 1024 * 1024;
+let currentXhr = null;
+let currentChunkUpload = null;
 
-/**
- * 分片上传大文件
- */
 async function uploadFileInChunks(file, isPublic, progressCallbacks) {
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     const uploadId = 'chunk_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -345,22 +344,21 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
     let uploadedBytes = 0;
     const { onProgress, onSpeed } = progressCallbacks;
     const startTime = Date.now();
+    const CONCURRENCY = 3;
 
     const state = { cancelled: false };
     currentChunkUpload = state;
-    console.log('[分片] 开始分片上传:', file.name, totalChunks + '片', file.size + 'bytes');
 
-    for (let i = 0; i < totalChunks; i++) {
-        if (state.cancelled) break;
-
-        const start = i * CHUNK_SIZE;
+    async function uploadSingleChunk(index) {
+        if (state.cancelled) return;
+        const start = index * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, file.size);
         const chunk = file.slice(start, end);
 
         const formData = new FormData();
         formData.append('action', 'upload_chunk');
         formData.append('upload_id', uploadId);
-        formData.append('chunk_index', i);
+        formData.append('chunk_index', index);
         formData.append('total_chunks', totalChunks);
         formData.append('file_name', file.name);
         formData.append('file_size', file.size);
@@ -369,11 +367,8 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
         if (currentPath && !isPublic) formData.append('dir', currentPath);
         formData.append('chunk', chunk);
 
-        console.log('[分片] 上传第', (i+1)+'/'+totalChunks, '片, 大小:', (end-start), 'bytes');
-        // 上传分片（最多重试3次）
         let retries = 3;
-        let success = false;
-        while (retries > 0 && !success && !state.cancelled) {
+        while (retries > 0 && !state.cancelled) {
             try {
                 await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
@@ -381,7 +376,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
                     xhr.onload = function () {
                         try {
                             const data = JSON.parse(xhr.responseText);
-                            if (data.success) { success = true; resolve(); }
+                            if (data.success) resolve();
                             else reject(new Error(data.message || '分片上传失败'));
                         } catch (e) { reject(e); }
                     };
@@ -390,42 +385,47 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
                     xhr.open('POST', 'upload.php');
                     xhr.send(formData);
                 });
+                uploadedBytes += chunk.size;
+                const pct = Math.min((uploadedBytes / totalBytes) * 100, 100);
+                onProgress(pct, uploadedBytes, totalBytes);
+                const elapsed = (Date.now() - startTime) / 1000;
+                if (elapsed > 0) onSpeed(formatFileSize(uploadedBytes / elapsed) + '/s');
+                return;
             } catch (e) {
-                if (state.cancelled) {
-                    retries = 0; // 取消时立即退出重试循环
-                } else {
-                    retries--;
-                    if (retries === 0) throw e;
-                    await new Promise(r => setTimeout(r, 1000)); // 重试前等待1秒
-                }
+                if (state.cancelled) return;
+                retries--;
+                if (retries === 0) throw e;
+                await new Promise(r => setTimeout(r, 1000));
             }
         }
-
-        if (state.cancelled) break;
-
-        uploadedBytes += chunk.size;
-        const pct = Math.min((uploadedBytes / totalBytes) * 100, 100);
-        onProgress(pct, uploadedBytes, totalBytes);
-        const elapsed = (Date.now() - startTime) / 1000;
-        if (elapsed > 0) onSpeed(formatFileSize(uploadedBytes / elapsed) + '/s');
     }
+
+    let nextChunk = 0;
+    const workers = [];
+    for (let w = 0; w < Math.min(CONCURRENCY, totalChunks); w++) {
+        workers.push((async () => {
+            while (nextChunk < totalChunks && !state.cancelled) {
+                const idx = nextChunk++;
+                await uploadSingleChunk(idx);
+            }
+        })());
+    }
+    await Promise.all(workers);
 
     currentXhr = null;
 
     if (state.cancelled) {
-        // 通知服务器清理分片
         try {
             await fetch('upload.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: 'action=cancel_chunks&upload_id=' + encodeURIComponent(uploadId)
             });
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
         currentChunkUpload = null;
         return null;
     }
 
-    // 合并分片
     onProgress(99, totalBytes, totalBytes);
     onSpeed('合并中...');
 

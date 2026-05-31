@@ -61,7 +61,8 @@ $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
 $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 if (!in_array($ext, $imageExts)) {
     // 非图片直接输出原文件
-    header('Content-Type: ' . mime_content_type($realPath));
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    header('Content-Type: ' . $finfo->file($realPath));
     readfile($realPath);
     exit;
 }
@@ -102,7 +103,8 @@ switch ($ext) {
 
 if (!$srcImage) {
     // GD 库不支持，直接输出原图
-    header('Content-Type: ' . mime_content_type($realPath));
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    header('Content-Type: ' . $finfo->file($realPath));
     readfile($realPath);
     exit;
 }

@@ -156,11 +156,9 @@ function findUserByPassword($password) {
 function findUserByMd5($md5) {
     $users = getUsers();
     foreach ($users as $userId => $userData) {
-        if (md5($userId === 'admin' ? 'admin' : '') === $md5) {
-            // 对于非admin用户，需要比对所有用户
-        }
-        if (isset($userData['password_hash'])) {
-            // 尝试用常见密码匹配（仅用于查找）
+        $userDir = BASE_UPLOAD_DIR . $md5 . '/';
+        if (is_dir($userDir)) {
+            return ['id' => $userId, 'data' => $userData];
         }
     }
     return null;
@@ -448,6 +446,16 @@ function getAllFoldersRecursive($baseDir, $currentDir, $relativePath) {
         closedir($handle);
     }
     return $result;
+}
+
+function rrmdir($dir) {
+    if (!is_dir($dir)) return false;
+    $items = array_diff(scandir($dir), ['.', '..']);
+    foreach ($items as $item) {
+        $path = $dir . '/' . $item;
+        is_dir($path) ? rrmdir($path) : unlink($path);
+    }
+    return rmdir($dir);
 }
 
 function cleanExpiredShares() {
