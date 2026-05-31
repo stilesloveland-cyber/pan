@@ -173,7 +173,9 @@ function registerUser($password) {
         }
     }
 
-    $users[] = [
+    // 用密码 MD5 作为用户 ID
+    $userId = md5($password);
+    $users[$userId] = [
         'password_hash' => password_hash($password, PASSWORD_DEFAULT),
         'registered' => time(),
         'role' => 'user'
