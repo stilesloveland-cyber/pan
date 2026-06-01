@@ -288,10 +288,11 @@ async function handleMove(event) {
 }
 
 // ========== 重命名 ==========
-function showRenameModal(name, isDir = false) {
-    document.getElementById('rename-old-name').value = name;
+function showRenameModal(filename, isDir = false, displayName = null) {
+    const cleanName = displayName || filename.replace(/^[0-9a-fA-F_]+_/, '');
+    document.getElementById('rename-old-name').value = filename;
     document.getElementById('rename-is-dir').value = isDir ? 'true' : 'false';
-    document.getElementById('rename-new-name').value = name;
+    document.getElementById('rename-new-name').value = cleanName;
     document.getElementById('rename-modal').classList.add('show');
     setTimeout(() => document.getElementById('rename-new-name').focus(), 100);
 }
@@ -397,6 +398,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
                     xhr.send(formData);
                 });
                 uploadedBytes += chunk.size;
+                if (uploadedBytes > totalBytes) uploadedBytes = totalBytes;
                 const pct = Math.min((uploadedBytes / totalBytes) * 100, 100);
                 onProgress(pct, uploadedBytes, totalBytes);
                 const elapsed = (Date.now() - startTime) / 1000;
@@ -493,13 +495,15 @@ function uploadFiles(fileList, isPublic = false) {
     let completedSize = 0;
 
     function updateProgress(displayLoaded, total) {
-        const p = total ? Math.min((displayLoaded / total) * 100, 100) : 0;
+        const safeTotal = total || totalSize;
+        const safeLoaded = Math.min(displayLoaded, safeTotal);
+        const p = safeTotal ? Math.min((safeLoaded / safeTotal) * 100, 100) : 0;
         progressFill.style.width = `${p}%`;
         progressPercent.textContent = `${Math.round(p)}%`;
         progressPercentText.textContent = `${Math.round(p)}%`;
-        progressSize.textContent = `${formatFileSize(displayLoaded)} / ${formatFileSize(total || totalSize)}`;
+        progressSize.textContent = `${formatFileSize(safeLoaded)} / ${formatFileSize(safeTotal)}`;
         const elapsed = (Date.now() - startTime) / 1000;
-        if (elapsed > 0 && displayLoaded > 0) progressSpeed.textContent = formatFileSize(displayLoaded / elapsed) + '/s';
+        if (elapsed > 0 && safeLoaded > 0) progressSpeed.textContent = formatFileSize(safeLoaded / elapsed) + '/s';
     }
 
     function finishUpload(data) {
@@ -627,6 +631,10 @@ function cancelUpload() {
         currentXhr.abort();
         currentXhr = null;
     }
+    progressBar.classList.remove('show');
+    document.getElementById('btn-cancel-upload').style.display = 'none';
+    fileInput.value = '';
+    showToast('上传已取消', true);
 }
 
 // 刷新文件列表
@@ -814,7 +822,7 @@ function renderListView(items, filteredFolders = null) {
         const li = document.createElement('li'); li.className = 'file-item'; li.dataset.filename = file.filename;
         const { icon: fi, colorClass: tc } = getFileIconInfo(file.name);
         const du = buildDownloadUrl(file);
-        li.innerHTML = `<input type="checkbox" class="file-checkbox" onchange="toggleFileSelection('${file.filename}')"><div class="file-thumb ${tc}"><i class="${fi}"></i></div><div class="file-info"><div class="file-name">${escHtml(file.name)}</div><div class="file-meta"><span>${formatFileSize(file.size)}</span><span>${formatDate(file.date)}</span>${file.userDir?'<span><i class="fas fa-user" style="font-size:10px"></i> '+file.userDir.substring(0,10)+'...</span>':''}${file.isPublic?'<span style="color:var(--info)"><i class="fas fa-globe"></i> 公共</span>':''}</div></div><div class="file-actions"><button class="btn btn-text" onclick="previewFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="预览"><i class="fas fa-eye"></i></button><button class="btn btn-text" onclick="shareFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="分享"><i class="fas fa-share-alt"></i></button><a href="${du}" class="btn btn-text" download="${escHtml(file.name)}" title="下载"><i class="fas fa-download"></i></a><button class="btn btn-text" onclick="showRenameModal('${escHtml(file.filename)}', false)" title="重命名"><i class="fas fa-pen"></i></button><button class="btn btn-text" onclick="showMoveModal('${escHtml(file.filename)}')" title="移动"><i class="fas fa-folder-open"></i></button><button class="btn btn-text btn-danger-text" onclick="deleteFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="删除"><i class="fas fa-trash-alt"></i></button></div>`;
+        li.innerHTML = `<input type="checkbox" class="file-checkbox" onchange="toggleFileSelection('${file.filename}')"><div class="file-thumb ${tc}"><i class="${fi}"></i></div><div class="file-info"><div class="file-name">${escHtml(file.name)}</div><div class="file-meta"><span>${formatFileSize(file.size)}</span><span>${formatDate(file.date)}</span>${file.userDir?'<span><i class="fas fa-user" style="font-size:10px"></i> '+file.userDir.substring(0,10)+'...</span>':''}${file.isPublic?'<span style="color:var(--info)"><i class="fas fa-globe"></i> 公共</span>':''}</div></div><div class="file-actions"><button class="btn btn-text" onclick="previewFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="预览"><i class="fas fa-eye"></i></button><button class="btn btn-text" onclick="shareFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="分享"><i class="fas fa-share-alt"></i></button><a href="${du}" class="btn btn-text" download="${escHtml(file.name)}" title="下载"><i class="fas fa-download"></i></a><button class="btn btn-text" onclick="showRenameModal('${escHtml(file.filename)}', false, '${escHtml(file.name)}')" title="重命名"><i class="fas fa-pen"></i></button><button class="btn btn-text" onclick="showMoveModal('${escHtml(file.filename)}')" title="移动"><i class="fas fa-folder-open"></i></button><button class="btn btn-text btn-danger-text" onclick="deleteFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="删除"><i class="fas fa-trash-alt"></i></button></div>`;
         fileList.appendChild(li);
     });
 }
@@ -848,7 +856,7 @@ function renderGridView(items, filteredFolders = null) {
         const div = document.createElement('div'); div.className = 'file-grid-item'; div.dataset.filename = file.filename;
         const { icon: fi, colorClass: tc } = getFileIconInfo(file.name);
         const du = buildDownloadUrl(file);
-        div.innerHTML = `<div class="file-grid-actions"><button class="btn" onclick="previewFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="预览"><i class="fas fa-eye"></i></button><button class="btn" onclick="shareFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="分享"><i class="fas fa-share-alt"></i></button><a href="${du}" class="btn" download="${escHtml(file.name)}" title="下载"><i class="fas fa-download"></i></a><button class="btn" onclick="showRenameModal('${escHtml(file.filename)}', false)" title="重命名"><i class="fas fa-pen"></i></button><button class="btn" onclick="showMoveModal('${escHtml(file.filename)}')" title="移动"><i class="fas fa-folder-open"></i></button><button class="btn" onclick="deleteFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="删除"><i class="fas fa-trash-alt"></i></button></div><div class="file-grid-thumb ${tc}"><i class="${fi}"></i></div><div class="file-grid-name" title="${escHtml(file.name)}">${escHtml(file.name)}</div><div class="file-grid-meta"><div>${formatFileSize(file.size)}</div><div>${formatDate(file.date)}</div></div>`;
+        div.innerHTML = `<div class="file-grid-actions"><button class="btn" onclick="previewFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="预览"><i class="fas fa-eye"></i></button><button class="btn" onclick="shareFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="分享"><i class="fas fa-share-alt"></i></button><a href="${du}" class="btn" download="${escHtml(file.name)}" title="下载"><i class="fas fa-download"></i></a><button class="btn" onclick="showRenameModal('${escHtml(file.filename)}', false, '${escHtml(file.name)}')" title="重命名"><i class="fas fa-pen"></i></button><button class="btn" onclick="showMoveModal('${escHtml(file.filename)}')" title="移动"><i class="fas fa-folder-open"></i></button><button class="btn" onclick="deleteFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="删除"><i class="fas fa-trash-alt"></i></button></div><div class="file-grid-thumb ${tc}"><i class="${fi}"></i></div><div class="file-grid-name" title="${escHtml(file.name)}">${escHtml(file.name)}</div><div class="file-grid-meta"><div>${formatFileSize(file.size)}</div><div>${formatDate(file.date)}</div></div>`;
         fileGridView.appendChild(div);
     });
 }
