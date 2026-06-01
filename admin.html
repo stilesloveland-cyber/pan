@@ -52,6 +52,26 @@
         .section{display:none}
         .section.active{display:block}
         .hint{font-size:12px;color:var(--text-muted);margin-top:4px}
+        .size-input-group { display: flex; gap: 8px; }
+        .size-input-group input { flex: 1; }
+        .size-input-group select { width: 80px; }
+        .risk-item{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start}
+        .risk-level{width:4px;min-height:40px;border-radius:2px;flex-shrink:0}
+        .risk-level.high{background:#e74c3c}
+        .risk-level.medium{background:#f39c12}
+        .risk-level.low{background:#3498db}
+        .risk-body{flex:1;min-width:0}
+        .risk-title{font-size:14px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+        .risk-badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;color:#fff}
+        .risk-badge.high{background:#e74c3c}
+        .risk-badge.medium{background:#f39c12}
+        .risk-badge.low{background:#3498db}
+        .risk-desc{font-size:13px;color:var(--text-secondary);margin-bottom:6px}
+        .risk-detail{font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:12px}
+        .risk-detail span{display:flex;align-items:center;gap:4px}
+        .risk-detail i{font-size:11px}
+        .risk-pass{color:var(--success)}
+        .risk-warning{color:var(--warning)}
         @media(max-width:768px){
             .admin-layout{flex-direction:column}
             .admin-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border)}
@@ -67,6 +87,7 @@
                 <li><a href="#" class="active" data-section="info"><i class="fas fa-info-circle"></i> 系统信息</a></li>
                 <li><a href="#" data-section="settings"><i class="fas fa-sliders-h"></i> 参数设置</a></li>
                 <li><a href="#" data-section="extensions"><i class="fas fa-ban"></i> 文件类型黑名单</a></li>
+                <li><a href="#" data-section="security"><i class="fas fa-shield-alt"></i> 安全风险</a></li>
                 <li><a href="#" data-section="users"><i class="fas fa-users-cog"></i> 用户管理</a></li>
                 <li><a href="index.html"><i class="fas fa-arrow-left"></i> 返回网盘</a></li>
             </ul>
@@ -88,23 +109,35 @@
                         <h3>空间配额</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>全局空间上限 (字节)</label>
-                                <input type="number" id="s-max_total_size" min="0">
+                                <label>全局空间上限</label>
+                                <div class="size-input-group">
+                                    <input type="number" id="s-max_total_size" min="0" step="0.1">
+                                    <select id="u-max_total_size"><option value="MB">MB</option><option value="GB" selected>GB</option></select>
+                                </div>
                                 <div class="hint" id="hint-max-total"></div>
                             </div>
                             <div class="form-group">
-                                <label>个人空间上限 (字节)</label>
-                                <input type="number" id="s-max_user_size" min="0">
+                                <label>个人空间上限</label>
+                                <div class="size-input-group">
+                                    <input type="number" id="s-max_user_size" min="0" step="0.1">
+                                    <select id="u-max_user_size"><option value="MB">MB</option><option value="GB" selected>GB</option></select>
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>公共空间上限 (字节)</label>
-                                <input type="number" id="s-max_public_size" min="0">
+                                <label>公共空间上限</label>
+                                <div class="size-input-group">
+                                    <input type="number" id="s-max_public_size" min="0" step="0.1">
+                                    <select id="u-max_public_size"><option value="MB">MB</option><option value="GB" selected>GB</option></select>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label>单文件最大 (字节)</label>
-                                <input type="number" id="s-max_file_size" min="0">
+                                <label>单文件最大</label>
+                                <div class="size-input-group">
+                                    <input type="number" id="s-max_file_size" min="0" step="0.1">
+                                    <select id="u-max_file_size"><option value="MB" selected>MB</option><option value="GB">GB</option></select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -116,9 +149,12 @@
                                 <input type="number" id="s-max_files_per_upload" min="1">
                             </div>
                             <div class="form-group">
-                                <label>分片大小 (字节)</label>
-                                <input type="number" id="s-chunk_size" min="1048576">
-                                <div class="hint">建议 5MB (5242880) ~ 10MB (10485760)</div>
+                                <label>分片大小</label>
+                                <div class="size-input-group">
+                                    <input type="number" id="s-chunk_size" min="1" step="0.5">
+                                    <select id="u-chunk_size"><option value="MB" selected>MB</option></select>
+                                </div>
+                                <div class="hint">建议 5MB ~ 20MB</div>
                             </div>
                         </div>
                     </div>
@@ -176,6 +212,11 @@
                     </table>
                 </div>
             </div>
+
+            <div id="section-security" class="section">
+                <h2><i class="fas fa-shield-alt"></i> 安全风险</h2>
+                <div id="security-risks"></div>
+            </div>
         </div>
     </div>
 
@@ -192,6 +233,11 @@
     </div>
 
     <script>
+    (function checkAdminAuth() {
+        fetch('files.php', { cache: 'no-store' }).then(r => r.json()).then(d => {
+            if (!d.success || !d.admin) window.location.href = 'index.html';
+        }).catch(() => { window.location.href = 'index.html'; });
+    })();
     let currentSettings = {};
     let currentExtensions = [];
 
@@ -200,6 +246,20 @@
         const k = 1024, s = ['B','KB','MB','GB','TB'];
         const i = Math.floor(Math.log(b) / Math.log(k));
         return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + s[i];
+    }
+
+    function bytesToUnit(bytes) {
+        if (bytes <= 0) return { value: 0, unit: 'MB' };
+        if (bytes % (1024 * 1024 * 1024) === 0) return { value: bytes / (1024 * 1024 * 1024), unit: 'GB' };
+        if (bytes % (1024 * 1024) === 0) return { value: bytes / (1024 * 1024), unit: 'MB' };
+        const gb = bytes / (1024 * 1024 * 1024);
+        if (gb >= 1) return { value: parseFloat(gb.toFixed(2)), unit: 'GB' };
+        return { value: parseFloat((bytes / (1024 * 1024)).toFixed(2)), unit: 'MB' };
+    }
+
+    function unitToBytes(value, unit) {
+        if (unit === 'GB') return value * 1024 * 1024 * 1024;
+        return value * 1024 * 1024;
     }
 
     function formatDate(ts) {
@@ -224,6 +284,7 @@
             document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
             document.getElementById('section-' + a.dataset.section).classList.add('active');
             if (a.dataset.section === 'users') loadUsers();
+            if (a.dataset.section === 'security') loadSecurityRisks();
         });
     });
 
@@ -243,8 +304,18 @@
 
             document.getElementById('hint-max-total').textContent = '最大允许: ' + formatBytes(data.max_allowed_total);
 
-            const intFields = ['max_total_size','max_user_size','max_public_size','max_file_size','max_files_per_upload','chunk_size','session_lifetime','cache_ttl','thumb_width','thumb_height'];
-            intFields.forEach(f => {
+            const sizeFields = ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size'];
+            sizeFields.forEach(f => {
+                const el = document.getElementById('s-' + f);
+                const uEl = document.getElementById('u-' + f);
+                if (el && uEl) {
+                    const { value, unit } = bytesToUnit(data.settings[f]);
+                    el.value = value;
+                    uEl.value = unit;
+                }
+            });
+            const otherIntFields = ['max_files_per_upload','session_lifetime','cache_ttl','thumb_width','thumb_height'];
+            otherIntFields.forEach(f => {
                 const el = document.getElementById('s-' + f);
                 if (el) el.value = data.settings[f];
             });
@@ -255,9 +326,15 @@
 
     document.getElementById('settings-form').addEventListener('submit', e => {
         e.preventDefault();
-        const intFields = ['max_total_size','max_user_size','max_public_size','max_file_size','max_files_per_upload','chunk_size','session_lifetime','cache_ttl','thumb_width','thumb_height'];
         const data = {};
-        intFields.forEach(f => { data[f] = parseInt(document.getElementById('s-' + f).value) || 0; });
+        const sizeFields = ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size'];
+        sizeFields.forEach(f => {
+            const val = parseFloat(document.getElementById('s-' + f).value) || 0;
+            const unit = document.getElementById('u-' + f).value;
+            data[f] = Math.round(unitToBytes(val, unit));
+        });
+        const otherIntFields = ['max_files_per_upload','session_lifetime','cache_ttl','thumb_width','thumb_height'];
+        otherIntFields.forEach(f => { data[f] = parseInt(document.getElementById('s-' + f).value) || 0; });
         data.blocked_extensions = currentExtensions;
 
         fetch('admin.php?action=save_settings', {
@@ -269,6 +346,35 @@
             else showToast(res.message, true);
         });
     });
+
+    ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size'].forEach(f => {
+        const uEl = document.getElementById('u-' + f);
+        const sEl = document.getElementById('s-' + f);
+        if (uEl && sEl) {
+            uEl.addEventListener('change', function() {
+                const oldUnit = this.value === 'GB' ? 'MB' : 'GB';
+                const oldVal = parseFloat(sEl.value) || 0;
+                const bytes = unitToBytes(oldVal, oldUnit);
+                const { value } = bytesToUnit(bytes);
+                sEl.value = value;
+            });
+        }
+    });
+
+    function loadSecurityRisks() {
+        fetch('admin.php?action=security_check').then(r => r.json()).then(data => {
+            if (!data.success) { document.getElementById('security-risks').innerHTML = '<p style="color:var(--text-muted)">加载失败</p>'; return; }
+            const container = document.getElementById('security-risks');
+            const severityLabels = { high: '高风险', medium: '中风险', low: '低风险' };
+            container.innerHTML = data.risks.map(r => {
+                const statusIcon = r.status === 'pass' ? '<i class="fas fa-check-circle risk-pass"></i>' : '<i class="fas fa-exclamation-triangle risk-warning"></i>';
+                const statusText = r.status === 'pass' ? '正常' : '需关注';
+                return '<div class="risk-item"><div class="risk-level ' + r.severity + '"></div><div class="risk-body"><div class="risk-title">' + r.label + ' <span class="risk-badge ' + r.severity + '">' + severityLabels[r.severity] + '</span></div><div class="risk-desc">' + r.description + '</div><div class="risk-detail"><span>' + statusIcon + ' 状态: ' + statusText + '</span><span><i class="fas fa-shield-alt"></i> 安全范围: ' + r.safe_range + '</span>' + (r.status !== 'pass' ? '<span><i class="fas fa-wrench"></i> ' + r.fix_suggestion + '</span>' : '') + '</div></div></div>';
+            }).join('');
+        }).catch(() => {
+            document.getElementById('security-risks').innerHTML = '<p style="color:var(--text-muted)">加载失败</p>';
+        });
+    }
 
     function renderExtensions() {
         const el = document.getElementById('ext-tags');

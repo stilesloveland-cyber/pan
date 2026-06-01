@@ -31,6 +31,56 @@ const changePasswordModal = document.getElementById('change-password-modal');
 const networkStatus = document.getElementById('network-status');
 const pingValue = document.getElementById('ping-value');
 
+// ========== API 请求封装 ==========
+async function apiRequest(action, options = {}) {
+    const {
+        params = {},
+        includePassword = true,
+        includePath = false,
+        url = 'upload.php'
+    } = options;
+
+    let body = `action=${encodeURIComponent(action)}`;
+    if (includePassword && currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
+    if (includePath && currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
+    for (const [key, value] of Object.entries(params)) {
+        body += `&${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+    }
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body
+    });
+
+    return response.json();
+}
+
+function buildApiUrl(baseUrl, options = {}) {
+    const {
+        params = {},
+        includePassword = true,
+        includePath = false
+    } = options;
+
+    let url = baseUrl;
+    let sep = baseUrl.includes('?') ? '&' : '?';
+    if (includePassword && currentPassword) { url += `${sep}password=${encodeURIComponent(currentPassword)}`; sep = '&'; }
+    if (includePath && currentPath) { url += `${sep}dir=${encodeURIComponent(currentPath)}`; sep = '&'; }
+    for (const [key, value] of Object.entries(params)) {
+        url += `${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+        sep = '&';
+    }
+    return url;
+}
+
+function appendCommonFormData(formData, options = {}) {
+    const { includePassword = true, includePath = false } = options;
+    if (includePassword && currentPassword) formData.append('password', currentPassword);
+    if (includePath && currentPath) formData.append('dir', currentPath);
+    return formData;
+}
+
 // ========== 暗色模式 ==========
 function getPreferredTheme() {
     const saved = localStorage.getItem('wpanTheme');
@@ -117,54 +167,45 @@ function showMain() {
     if (adminNavItem) adminNavItem.style.display = isAdmin ? 'block' : 'none';
 }
 
-function handleLogout() {
+async function handleLogout() {
     if (!confirm('确定要退出登录吗？')) return;
-    fetch('upload.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'action=logout'
-    }).then(() => {
+    try {
+        await apiRequest('logout', { includePassword: false });
         isLoggedIn = false; currentPassword = ''; isAdmin = false;
         files = []; publicFiles = []; selectedFiles = [];
         showLogin(); showToast('已退出登录');
-    }).catch(() => { showLogin(); });
+    } catch (e) { showLogin(); }
 }
 
-function handleLogin(event) {
+async function handleLogin(event) {
     event.preventDefault();
     const password = loginPassword.value.trim();
     if (!password) { alert('请输入密码'); return; }
-    fetch('upload.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=login&password=${encodeURIComponent(password)}`
-    }).then(r => r.json()).then(data => {
+    try {
+        const data = await apiRequest('login', { params: { password: password }, includePassword: false });
         if (data.success) {
             currentPassword = password;
             isAdmin = data.role === 'admin';
             isLoggedIn = true;
             showMain(); refreshFileList();
         } else { alert(data.message); }
-    }).catch(error => { console.error('登录失败:', error); alert('登录失败，请重试'); });
+    } catch (error) { console.error('登录失败:', error); alert('登录失败，请重试'); }
 }
 
-function handleRegister(event) {
+async function handleRegister(event) {
     event.preventDefault();
     const password = document.getElementById('register-password').value.trim();
     const confirmPassword = document.getElementById('confirm-password').value.trim();
     if (!password) { alert('请输入密码'); return; }
     if (password !== confirmPassword) { alert('两次输入的密码不一致'); return; }
-    fetch('upload.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `action=register&password=${encodeURIComponent(password)}`
-    }).then(r => r.json()).then(data => {
+    try {
+        const data = await apiRequest('register', { params: { password: password }, includePassword: false });
         if (data.success) {
             currentPassword = password; isAdmin = data.role === 'admin'; isLoggedIn = true;
             document.getElementById('register-modal').classList.remove('show');
             showMain(); refreshFileList(); showToast('注册成功');
         } else { alert(data.message); }
-    }).catch(error => { console.error('注册失败:', error); alert('注册失败，请重试'); });
+    } catch (error) { console.error('注册失败:', error); alert('注册失败，请重试'); }
 }
 
 // ========== 新建文件夹 ==========
@@ -174,31 +215,26 @@ function showNewFolderModal() {
     setTimeout(() => document.getElementById('folder-name').focus(), 100);
 }
 function closeNewFolderModal() { document.getElementById('new-folder-modal').classList.remove('show'); }
-function handleCreateFolder(event) {
+async function handleCreateFolder(event) {
     event.preventDefault();
     const folderName = document.getElementById('folder-name').value.trim();
     if (!folderName) { alert('请输入文件夹名称'); return; }
     if (/[\\/:*?"<>|]/.test(folderName)) { alert('文件夹名称包含非法字符'); return; }
-    let body = `action=create_folder&folder_name=${encodeURIComponent(folderName)}`;
-    if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
-    if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
-    fetch('upload.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
-    }).then(r => r.json()).then(data => {
+    try {
+        const data = await apiRequest('create_folder', { params: { folder_name: folderName }, includePath: true });
         if (data.success) { closeNewFolderModal(); refreshFileList(); showToast('文件夹创建成功'); }
         else { alert('创建失败：' + data.message); }
-    }).catch(() => alert('创建失败，请重试'));
+    } catch (e) { alert('创建失败，请重试'); }
 }
 
 // ========== 移动文件 ==========
-function loadFolderList(callback) {
-    let url = 'upload.php?action=list_folders';
-    if (currentPassword) url += `&password=${encodeURIComponent(currentPassword)}`;
-    fetch(url).then(r => r.json()).then(data => {
+async function loadFolderList(callback) {
+    try {
+        const url = buildApiUrl('upload.php', { params: { action: 'list_folders' } });
+        const resp = await fetch(url);
+        const data = await resp.json();
         callback(data.success ? (data.folders || []) : []);
-    }).catch(() => callback([]));
+    } catch (e) { callback([]); }
 }
 
 function showMoveModal(itemName, isBatch = false) {
@@ -223,49 +259,32 @@ function showMoveSelectedModal() {
 
 function closeMoveModal() { document.getElementById('move-modal').classList.remove('show'); }
 
-function handleMove(event) {
+async function handleMove(event) {
     event.preventDefault();
     const itemVal = document.getElementById('move-item-name').value;
     const targetDir = document.getElementById('move-target').value;
 
     if (itemVal === '__batch__') {
         if (selectedFiles.length === 0) { alert('没有选中的文件'); return; }
-        let successCount = 0, failCount = 0, completed = 0;
-        const total = selectedFiles.length;
-        selectedFiles.forEach(filename => {
-            let body = `action=move&item=${encodeURIComponent(filename)}&target_dir=${encodeURIComponent(targetDir)}`;
-            if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
-            if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
-            fetch('upload.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body
-            }).then(r => r.json()).then(data => {
-                completed++;
-                if (data.success) successCount++; else failCount++;
-                if (completed === total) {
-                    closeMoveModal(); selectedFiles = []; refreshFileList();
-                    showToast(`移动完成：成功 ${successCount} 个${failCount > 0 ? '，失败 ' + failCount + ' 个' : ''}`);
-                }
-            }).catch(() => {
-                completed++; failCount++;
-                if (completed === total) { closeMoveModal(); refreshFileList(); showToast(`移动完成：成功 ${successCount} 个，失败 ${failCount} 个`, true); }
-            });
+        const results = await Promise.allSettled(
+            selectedFiles.map(filename =>
+                apiRequest('move', { params: { item: filename, target_dir: targetDir }, includePath: true })
+            )
+        );
+        let successCount = 0, failCount = 0;
+        results.forEach(r => {
+            if (r.status === 'fulfilled' && r.value.success) successCount++; else failCount++;
         });
+        closeMoveModal(); selectedFiles = []; refreshFileList();
+        showToast(`移动完成：成功 ${successCount} 个${failCount > 0 ? '，失败 ' + failCount + ' 个' : ''}`, failCount > 0);
         return;
     }
 
-    let body = `action=move&item=${encodeURIComponent(itemVal)}&target_dir=${encodeURIComponent(targetDir)}`;
-    if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
-    if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
-    fetch('upload.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
-    }).then(r => r.json()).then(data => {
+    try {
+        const data = await apiRequest('move', { params: { item: itemVal, target_dir: targetDir }, includePath: true });
         if (data.success) { closeMoveModal(); refreshFileList(); showToast('移动成功'); }
         else { alert('移动失败：' + data.message); }
-    }).catch(() => alert('移动失败，请重试'));
+    } catch (e) { alert('移动失败，请重试'); }
 }
 
 // ========== 重命名 ==========
@@ -277,21 +296,17 @@ function showRenameModal(name, isDir = false) {
     setTimeout(() => document.getElementById('rename-new-name').focus(), 100);
 }
 function closeRenameModal() { document.getElementById('rename-modal').classList.remove('show'); }
-function handleRename(event) {
+async function handleRename(event) {
     event.preventDefault();
     const oldName = document.getElementById('rename-old-name').value;
     const newName = document.getElementById('rename-new-name').value.trim();
     if (!newName) { alert('请输入新名称'); return; }
     if (/[\\/:*?"<>|]/.test(newName)) { alert('名称包含非法字符'); return; }
-    let body = `action=rename&old_name=${encodeURIComponent(oldName)}&new_name=${encodeURIComponent(newName)}`;
-    if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
-    if (currentPath) body += `&dir=${encodeURIComponent(currentPath)}`;
-    fetch('upload.php', {
-        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body
-    }).then(r => r.json()).then(data => {
+    try {
+        const data = await apiRequest('rename', { params: { old_name: oldName, new_name: newName }, includePath: true });
         if (data.success) { closeRenameModal(); refreshFileList(); showToast('重命名成功'); }
         else { alert('重命名失败：' + data.message); }
-    }).catch(() => alert('重命名失败，请重试'));
+    } catch (e) { alert('重命名失败，请重试'); }
 }
 
 // 修改密码
@@ -301,19 +316,16 @@ function closeChangePasswordModal() {
     document.getElementById('current-password').value = '';
     document.getElementById('new-password').value = '';
 }
-function handleChangePassword(event) {
+async function handleChangePassword(event) {
     event.preventDefault();
     const c = document.getElementById('current-password').value;
     const n = document.getElementById('new-password').value;
-    if (c && n) {
-        fetch('upload.php', {
-            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=change_password&current_password=${encodeURIComponent(c)}&new_password=${encodeURIComponent(n)}`
-        }).then(r => r.json()).then(data => {
-            if (data.success) { showToast('密码修改成功，请重新登录'); closeChangePasswordModal(); setTimeout(() => handleLogout(), 1500); }
-            else { alert('密码修改失败：' + data.message); }
-        }).catch(error => { console.error('密码修改失败:', error); alert('密码修改失败，请重试'); });
-    }
+    if (!c || !n) return;
+    try {
+        const data = await apiRequest('change_password', { params: { current_password: c, new_password: n }, includePassword: false });
+        if (data.success) { showToast('密码修改成功，请重新登录'); closeChangePasswordModal(); setTimeout(() => handleLogout(), 1500); }
+        else { alert('密码修改失败：' + data.message); }
+    } catch (error) { console.error('密码修改失败:', error); alert('密码修改失败，请重试'); }
 }
 
 // 拖拽上传
@@ -333,7 +345,7 @@ function initFileInput() {
 
 function uploadToPublic() { fileInput.click(); fileInput.dataset.isPublic = 'true'; }
 
-const CHUNK_SIZE = 5 * 1024 * 1024;
+const CHUNK_SIZE = 10 * 1024 * 1024;
 let currentXhr = null;
 let currentChunkUpload = null;
 
@@ -344,7 +356,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
     let uploadedBytes = 0;
     const { onProgress, onSpeed } = progressCallbacks;
     const startTime = Date.now();
-    const CONCURRENCY = 3;
+    const CONCURRENCY = 5;
 
     const state = { cancelled: false };
     currentChunkUpload = state;
@@ -363,8 +375,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
         formData.append('file_name', file.name);
         formData.append('file_size', file.size);
         formData.append('is_public', isPublic);
-        if (currentPassword) formData.append('password', currentPassword);
-        if (currentPath && !isPublic) formData.append('dir', currentPath);
+        appendCommonFormData(formData, { includePath: !isPublic });
         formData.append('chunk', chunk);
 
         let retries = 3;
@@ -435,8 +446,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
     mergeFormData.append('total_chunks', totalChunks);
     mergeFormData.append('file_name', file.name);
     mergeFormData.append('is_public', isPublic);
-    if (currentPassword) mergeFormData.append('password', currentPassword);
-    if (currentPath && !isPublic) mergeFormData.append('dir', currentPath);
+    appendCommonFormData(mergeFormData, { includePath: !isPublic });
 
     try {
         const resp = await fetch('upload.php', { method: 'POST', body: mergeFormData });
@@ -480,17 +490,16 @@ function uploadFiles(fileList, isPublic = false) {
     progressSize.textContent = `0 B / ${formatFileSize(totalSize)}`;
 
     const startTime = Date.now();
-    let uploadedSize = 0;
+    let completedSize = 0;
 
-    function updateProgress(pct, loaded, total) {
-        uploadedSize = loaded || uploadedSize;
-        const p = pct !== undefined ? pct : (total ? Math.min((uploadedSize / total) * 100, 100) : 0);
+    function updateProgress(displayLoaded, total) {
+        const p = total ? Math.min((displayLoaded / total) * 100, 100) : 0;
         progressFill.style.width = `${p}%`;
         progressPercent.textContent = `${Math.round(p)}%`;
         progressPercentText.textContent = `${Math.round(p)}%`;
-        progressSize.textContent = `${formatFileSize(uploadedSize)} / ${formatFileSize(total || totalSize)}`;
+        progressSize.textContent = `${formatFileSize(displayLoaded)} / ${formatFileSize(total || totalSize)}`;
         const elapsed = (Date.now() - startTime) / 1000;
-        if (elapsed > 0 && uploadedSize > 0) progressSpeed.textContent = formatFileSize(uploadedSize / elapsed) + '/s';
+        if (elapsed > 0 && displayLoaded > 0) progressSpeed.textContent = formatFileSize(displayLoaded / elapsed) + '/s';
     }
 
     function finishUpload(data) {
@@ -521,16 +530,14 @@ function uploadFiles(fileList, isPublic = false) {
         const formData = new FormData();
         for (let i = 0; i < fileList.length; i++) formData.append('files[]', fileList[i]);
         formData.append('is_public', isPublic);
-        if (currentPassword) formData.append('password', currentPassword);
-        if (currentPath && !isPublic) formData.append('dir', currentPath);
+        appendCommonFormData(formData, { includePath: !isPublic });
 
         const xhr = new XMLHttpRequest();
         currentXhr = xhr;
 
         xhr.upload.addEventListener('progress', function(e) {
             if (e.lengthComputable) {
-                uploadedSize = e.loaded;
-                updateProgress(null, e.loaded, e.total);
+                updateProgress(e.loaded, e.total);
             }
         });
 
@@ -562,7 +569,7 @@ function uploadFiles(fileList, isPublic = false) {
                         const data = await uploadFileInChunks(file, isPublic, {
                             onProgress: (pct, loaded, total) => {
                                 // 用已上传总量计算整体百分比，不用当前文件的百分比
-                                updateProgress(undefined, uploadedSize + loaded, totalSize);
+                                updateProgress(completedSize + loaded, totalSize);
                             },
                             onSpeed: (speed) => { progressSpeed.textContent = speed; }
                         });
@@ -572,7 +579,7 @@ function uploadFiles(fileList, isPublic = false) {
                             showToast('上传已取消', true);
                             return;
                         }
-                        uploadedSize += file.size;
+                        completedSize += file.size;
                         lastData = data;
                         if (!data.success) { allSuccess = false; break; }
                     } catch (e) {
@@ -585,14 +592,13 @@ function uploadFiles(fileList, isPublic = false) {
                     const formData = new FormData();
                     formData.append('files[]', file);
                     formData.append('is_public', isPublic);
-                    if (currentPassword) formData.append('password', currentPassword);
-                    if (currentPath && !isPublic) formData.append('dir', currentPath);
+                    appendCommonFormData(formData, { includePath: !isPublic });
 
                     try {
                         const resp = await fetch('upload.php', { method: 'POST', body: formData });
                         const data = await resp.json();
-                        uploadedSize += file.size;
-                        updateProgress(null, uploadedSize, totalSize);
+                        completedSize += file.size;
+                        updateProgress(completedSize, totalSize);
                         lastData = data;
                         if (!data.success) { allSuccess = false; break; }
                     } catch (e) {
@@ -625,13 +631,8 @@ function cancelUpload() {
 
 // 刷新文件列表
 function refreshFileList() {
-    let url = 'files.php';
-    let params = [];
-    if (currentPassword) params.push('password=' + encodeURIComponent(currentPassword));
-    if (currentPath) params.push('dir=' + encodeURIComponent(currentPath));
-    params.push('_=' + Date.now()); // 防缓存
-    url += '?' + params.join('&');
-    showSkeleton(); // 显示骨架屏
+    const url = buildApiUrl('files.php', { includePassword: true, includePath: true, params: { _: Date.now() } });
+    showSkeleton();
 
     fetch(url).then(r => r.json()).then(data => {
         if (data.success) {
@@ -693,6 +694,9 @@ function initSidebarNavigation() {
     const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
     sidebarLinks.forEach(link => {
         link.addEventListener('click', (e) => {
+            if (link.getAttribute('href') && !link.getAttribute('href').startsWith('#') && !link.dataset.view) {
+                return;
+            }
             e.preventDefault();
             sidebarLinks.forEach(l => l.classList.remove('active'));
             link.classList.add('active');
@@ -746,23 +750,49 @@ function searchFiles() {
     const cf = currentView === 'personal' ? files : publicFiles;
     const ff = cf.filter(f => f.name.toLowerCase().includes(t));
     const df = (folders || []).filter(f => f.name.toLowerCase().includes(t));
-    const of = folders; folders = df; renderFiles(ff); folders = of;
+    renderFiles(ff, df);
 }
 
-function renderFiles(filteredFiles = null) {
+function renderFiles(filteredFiles = null, filteredFolders = null) {
     const cf = filteredFiles || (currentView === 'personal' ? files : publicFiles);
-    if (displayView === 'list') renderListView(cf);
-    else renderGridView(cf);
+    const ffs = filteredFolders;
+    if (displayView === 'list') renderListView(cf, ffs);
+    else renderGridView(cf, ffs);
+}
+
+function getFileIconInfo(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    let icon = 'fas fa-file', colorClass = 'default';
+    if (['jpg','jpeg','png','gif','webp'].includes(ext)) { icon='fas fa-file-image'; colorClass='image'; }
+    else if (ext==='pdf') { icon='fas fa-file-pdf'; colorClass='pdf'; }
+    else if (['doc','docx'].includes(ext)) { icon='fas fa-file-word'; colorClass='doc'; }
+    else if (['xls','xlsx'].includes(ext)) { icon='fas fa-file-excel'; colorClass='excel'; }
+    else if (['ppt','pptx'].includes(ext)) { icon='fas fa-file-powerpoint'; colorClass='ppt'; }
+    else if (['zip','rar','7z'].includes(ext)) { icon='fas fa-file-archive'; colorClass='zip'; }
+    else if (['mp3','wav','flac'].includes(ext)) { icon='fas fa-file-audio'; colorClass='audio'; }
+    else if (['mp4','avi','mov'].includes(ext)) { icon='fas fa-file-video'; colorClass='video'; }
+    else if (['js','css','html','php'].includes(ext)) { icon='fas fa-file-code'; colorClass='code'; }
+    else if (['txt','md'].includes(ext)) { icon='fas fa-file-alt'; colorClass='text'; }
+    return { icon, colorClass };
+}
+
+function buildDownloadUrl(file) {
+    const fd = currentPath && currentView === 'personal' ? currentPath : '';
+    let du = `download.php?file=${encodeURIComponent(file.filename)}`;
+    if (fd) du += `&dir=${encodeURIComponent(fd)}`;
+    if (file.userDir) du += `&userDir=${encodeURIComponent(file.userDir)}`;
+    if (currentPassword) du += `&password=${encodeURIComponent(currentPassword)}`;
+    return du;
 }
 
 // ========== 渲染列表视图 ==========
-function renderListView(items) {
+function renderListView(items, filteredFolders = null) {
     fileListView.style.display = 'block';
     fileGridView.style.display = 'none';
     let allItems = [];
     if (currentView === 'personal') {
         if (currentPath) allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
-        (folders || []).forEach(f => allItems.push({ isDir: true, name: f.name, date: f.date || 0, size: 0, filename: f.name }));
+        (filteredFolders || folders || []).forEach(f => allItems.push({ isDir: true, name: f.name, date: f.date || 0, size: 0, filename: f.name }));
     }
     (items || []).forEach(f => allItems.push(f));
     if (allItems.length === 0) {
@@ -782,36 +812,21 @@ function renderListView(items) {
             fileList.appendChild(li); return;
         }
         const li = document.createElement('li'); li.className = 'file-item'; li.dataset.filename = file.filename;
-        const ext = file.name.split('.').pop().toLowerCase();
-        let fi = 'fas fa-file', tc = 'default';
-        if (['jpg','jpeg','png','gif','webp'].includes(ext)) { fi='fas fa-file-image'; tc='image'; }
-        else if (ext==='pdf') { fi='fas fa-file-pdf'; tc='pdf'; }
-        else if (['doc','docx'].includes(ext)) { fi='fas fa-file-word'; tc='doc'; }
-        else if (['xls','xlsx'].includes(ext)) { fi='fas fa-file-excel'; tc='excel'; }
-        else if (['ppt','pptx'].includes(ext)) { fi='fas fa-file-powerpoint'; tc='ppt'; }
-        else if (['zip','rar','7z'].includes(ext)) { fi='fas fa-file-archive'; tc='zip'; }
-        else if (['mp3','wav','flac'].includes(ext)) { fi='fas fa-file-audio'; tc='audio'; }
-        else if (['mp4','avi','mov'].includes(ext)) { fi='fas fa-file-video'; tc='video'; }
-        else if (['js','css','html','php'].includes(ext)) { fi='fas fa-file-code'; tc='code'; }
-        else if (['txt','md'].includes(ext)) { fi='fas fa-file-alt'; tc='text'; }
-        const fd = currentPath && currentView === 'personal' ? currentPath : '';
-        let du = `download.php?file=${encodeURIComponent(file.filename)}`;
-        if (fd) du += `&dir=${encodeURIComponent(fd)}`;
-        if (file.userDir) du += `&userDir=${encodeURIComponent(file.userDir)}`;
-        if (currentPassword) du += `&password=${encodeURIComponent(currentPassword)}`;
+        const { icon: fi, colorClass: tc } = getFileIconInfo(file.name);
+        const du = buildDownloadUrl(file);
         li.innerHTML = `<input type="checkbox" class="file-checkbox" onchange="toggleFileSelection('${file.filename}')"><div class="file-thumb ${tc}"><i class="${fi}"></i></div><div class="file-info"><div class="file-name">${escHtml(file.name)}</div><div class="file-meta"><span>${formatFileSize(file.size)}</span><span>${formatDate(file.date)}</span>${file.userDir?'<span><i class="fas fa-user" style="font-size:10px"></i> '+file.userDir.substring(0,10)+'...</span>':''}${file.isPublic?'<span style="color:var(--info)"><i class="fas fa-globe"></i> 公共</span>':''}</div></div><div class="file-actions"><button class="btn btn-text" onclick="previewFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="预览"><i class="fas fa-eye"></i></button><button class="btn btn-text" onclick="shareFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="分享"><i class="fas fa-share-alt"></i></button><a href="${du}" class="btn btn-text" download="${escHtml(file.name)}" title="下载"><i class="fas fa-download"></i></a><button class="btn btn-text" onclick="showRenameModal('${escHtml(file.filename)}', false)" title="重命名"><i class="fas fa-pen"></i></button><button class="btn btn-text" onclick="showMoveModal('${escHtml(file.filename)}')" title="移动"><i class="fas fa-folder-open"></i></button><button class="btn btn-text btn-danger-text" onclick="deleteFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="删除"><i class="fas fa-trash-alt"></i></button></div>`;
         fileList.appendChild(li);
     });
 }
 
 // ========== 渲染图标视图 ==========
-function renderGridView(items) {
+function renderGridView(items, filteredFolders = null) {
     fileListView.style.display = 'none';
     fileGridView.style.display = 'grid';
     let allItems = [];
     if (currentView === 'personal') {
         if (currentPath) allItems.push({ isDir: true, isParent: true, name: '..', date: 0, size: 0 });
-        (folders || []).forEach(f => allItems.push({ isDir: true, name: f.name, date: f.date || 0, size: 0, filename: f.name }));
+        (filteredFolders || folders || []).forEach(f => allItems.push({ isDir: true, name: f.name, date: f.date || 0, size: 0, filename: f.name }));
     }
     (items || []).forEach(f => allItems.push(f));
     if (allItems.length === 0) {
@@ -831,23 +846,8 @@ function renderGridView(items) {
             fileGridView.appendChild(div); return;
         }
         const div = document.createElement('div'); div.className = 'file-grid-item'; div.dataset.filename = file.filename;
-        const ext = file.name.split('.').pop().toLowerCase();
-        let fi = 'fas fa-file', tc = 'default';
-        if (['jpg','jpeg','png','gif','webp'].includes(ext)) { fi='fas fa-file-image'; tc='image'; }
-        else if (ext==='pdf') { fi='fas fa-file-pdf'; tc='pdf'; }
-        else if (['doc','docx'].includes(ext)) { fi='fas fa-file-word'; tc='doc'; }
-        else if (['xls','xlsx'].includes(ext)) { fi='fas fa-file-excel'; tc='excel'; }
-        else if (['ppt','pptx'].includes(ext)) { fi='fas fa-file-powerpoint'; tc='ppt'; }
-        else if (['zip','rar','7z'].includes(ext)) { fi='fas fa-file-archive'; tc='zip'; }
-        else if (['mp3','wav','flac'].includes(ext)) { fi='fas fa-file-audio'; tc='audio'; }
-        else if (['mp4','avi','mov'].includes(ext)) { fi='fas fa-file-video'; tc='video'; }
-        else if (['js','css','html','php'].includes(ext)) { fi='fas fa-file-code'; tc='code'; }
-        else if (['txt','md'].includes(ext)) { fi='fas fa-file-alt'; tc='text'; }
-        const fd = currentPath && currentView === 'personal' ? currentPath : '';
-        let du = `download.php?file=${encodeURIComponent(file.filename)}`;
-        if (fd) du += `&dir=${encodeURIComponent(fd)}`;
-        if (file.userDir) du += `&userDir=${encodeURIComponent(file.userDir)}`;
-        if (currentPassword) du += `&password=${encodeURIComponent(currentPassword)}`;
+        const { icon: fi, colorClass: tc } = getFileIconInfo(file.name);
+        const du = buildDownloadUrl(file);
         div.innerHTML = `<div class="file-grid-actions"><button class="btn" onclick="previewFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="预览"><i class="fas fa-eye"></i></button><button class="btn" onclick="shareFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="分享"><i class="fas fa-share-alt"></i></button><a href="${du}" class="btn" download="${escHtml(file.name)}" title="下载"><i class="fas fa-download"></i></a><button class="btn" onclick="showRenameModal('${escHtml(file.filename)}', false)" title="重命名"><i class="fas fa-pen"></i></button><button class="btn" onclick="showMoveModal('${escHtml(file.filename)}')" title="移动"><i class="fas fa-folder-open"></i></button><button class="btn" onclick="deleteFile('${file.filename}', ${file.userDir?`'${file.userDir}'`:'null'})" title="删除"><i class="fas fa-trash-alt"></i></button></div><div class="file-grid-thumb ${tc}"><i class="${fi}"></i></div><div class="file-grid-name" title="${escHtml(file.name)}">${escHtml(file.name)}</div><div class="file-grid-meta"><div>${formatFileSize(file.size)}</div><div>${formatDate(file.date)}</div></div>`;
         fileGridView.appendChild(div);
     });
@@ -884,9 +884,7 @@ function selectAllFiles() {
 // ========== ZIP 打包下载 ==========
 function downloadSelectedAsZip() {
     if (selectedFiles.length === 0) { showToast('请先选择要下载的文件', true); return; }
-    let url = 'zip.php?files=' + encodeURIComponent(JSON.stringify(selectedFiles));
-    if (currentPassword) url += '&password=' + encodeURIComponent(currentPassword);
-    if (currentPath && currentView === 'personal') url += '&dir=' + encodeURIComponent(currentPath);
+    const url = buildApiUrl('zip.php', { includePassword: true, includePath: currentView === 'personal', params: { files: JSON.stringify(selectedFiles) } });
     window.location.href = url;
 }
 
@@ -895,8 +893,7 @@ function deleteSelectedFiles() {
     if (!confirm(`确定要删除选中的 ${selectedFiles.length} 个文件吗？`)) return;
     const fd = new FormData();
     fd.append('action', 'delete');
-    if (currentPassword) fd.append('password', currentPassword);
-    if (currentPath && currentView === 'personal') fd.append('dir', currentPath);
+    appendCommonFormData(fd, { includePath: currentView === 'personal' });
     if (currentView === 'public') fd.append('is_public', 'true');
     selectedFiles.forEach(f => fd.append('files[]', f));
     fetch('upload.php', { method: 'POST', body: fd })
@@ -906,18 +903,16 @@ function deleteSelectedFiles() {
         }).catch(error => { console.error('删除失败:', error); alert('删除失败，请重试'); });
 }
 
-function deleteFile(filename, userDir = null) {
+async function deleteFile(filename, userDir = null) {
     if (!confirm('确定要删除这个文件吗？')) return;
-    let body = `action=delete&file=${encodeURIComponent(filename)}`;
-    if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
-    if (isAdmin && userDir) body += `&userDir=${encodeURIComponent(userDir)}`;
-    if (currentPath && currentView === 'personal') body += `&dir=${encodeURIComponent(currentPath)}`;
-    if (currentView === 'public') body += '&is_public=true';
-    fetch('upload.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-        .then(r => r.json()).then(data => {
-            if (data.success) { refreshFileList(); if (data.usedSize !== undefined) updateSpaceUsage(data); showToast('文件删除成功'); }
-            else { alert('删除失败：' + data.message); }
-        }).catch(error => { console.error('删除失败:', error); alert('删除失败，请重试'); });
+    const params = { file: filename };
+    if (isAdmin && userDir) params.userDir = userDir;
+    if (currentView === 'public') params.is_public = 'true';
+    try {
+        const data = await apiRequest('delete', { params: params, includePath: currentView === 'personal' });
+        if (data.success) { refreshFileList(); if (data.usedSize !== undefined) updateSpaceUsage(data); showToast('文件删除成功'); }
+        else { alert('删除失败：' + data.message); }
+    } catch (error) { console.error('删除失败:', error); alert('删除失败，请重试'); }
 }
 
 // ========== 点击行/格选中 ==========
@@ -960,21 +955,35 @@ document.addEventListener('contextmenu', function(e) {
     if (!filename) return;
     
     // 构建菜单项
+    const safeFilename = filename.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     let html = '';
-    html += '<div class="context-menu-item" onclick="closeContextMenu();previewFile(\''+filename+'\')"><i class="fas fa-eye"></i> 预览</div>';
-    html += '<div class="context-menu-item" onclick="closeContextMenu();shareFile(\''+filename+'\')"><i class="fas fa-share-alt"></i> 分享</div>';
+    html += '<div class="context-menu-item" data-action="preview" data-filename="'+safeFilename+'"><i class="fas fa-eye"></i> 预览</div>';
+    html += '<div class="context-menu-item" data-action="share" data-filename="'+safeFilename+'"><i class="fas fa-share-alt"></i> 分享</div>';
     if (!isFolder) {
         const du = target.querySelector('a[download]');
-        if (du) html += '<div class="context-menu-item" onclick="closeContextMenu();window.location.href=\''+du.getAttribute('href')+'\'"><i class="fas fa-download"></i> 下载</div>';
+        if (du) html += '<div class="context-menu-item" data-action="download" data-url="'+du.getAttribute('href')+'"><i class="fas fa-download"></i> 下载</div>';
     }
     html += '<div class="context-menu-sep"></div>';
-    html += '<div class="context-menu-item" onclick="closeContextMenu();showRenameModal(\''+filename+'\', '+isFolder+')"><i class="fas fa-pen"></i> 重命名</div>';
-    html += '<div class="context-menu-item" onclick="closeContextMenu();showMoveModal(\''+filename+'\')"><i class="fas fa-folder-open"></i> 移动</div>';
+    html += '<div class="context-menu-item" data-action="rename" data-filename="'+safeFilename+'" data-isdir="'+isFolder+'"><i class="fas fa-pen"></i> 重命名</div>';
+    html += '<div class="context-menu-item" data-action="move" data-filename="'+safeFilename+'"><i class="fas fa-folder-open"></i> 移动</div>';
     html += '<div class="context-menu-sep"></div>';
-    html += '<div class="context-menu-item danger" onclick="closeContextMenu();deleteFile(\''+filename+'\')"><i class="fas fa-trash-alt"></i> 删除</div>';
+    html += '<div class="context-menu-item danger" data-action="delete" data-filename="'+safeFilename+'"><i class="fas fa-trash-alt"></i> 删除</div>';
 
     const menu = document.getElementById('context-menu');
     menu.innerHTML = html;
+    menu.querySelectorAll('.context-menu-item[data-action]').forEach(item => {
+        item.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const fn = this.dataset.filename;
+            closeContextMenu();
+            if (action === 'preview') previewFile(fn);
+            else if (action === 'share') shareFile(fn);
+            else if (action === 'download') window.location.href = this.dataset.url;
+            else if (action === 'rename') showRenameModal(fn, this.dataset.isdir === 'true');
+            else if (action === 'move') showMoveModal(fn);
+            else if (action === 'delete') deleteFile(fn);
+        });
+    });
     menu.style.display = 'block';
     
     // 防止超出视口
@@ -1020,9 +1029,9 @@ function updateLightbox() {
     const img = document.getElementById('lightbox-img');
     const f = lightboxImages[lightboxIndex];
     if (!f) return;
-    let url = `preview.php?file=${encodeURIComponent(f.filename)}`;
-    if (currentPassword) url += `&password=${encodeURIComponent(currentPassword)}`;
-    if (f.userDir) url += `&userDir=${encodeURIComponent(f.userDir)}`;
+    const lbParams = { file: f.filename };
+    if (f.userDir) lbParams.userDir = f.userDir;
+    let url = buildApiUrl('preview.php', { includePassword: true, params: lbParams });
     img.src = url;
     img.classList.remove('zoomed');
     const counter = document.getElementById('lightbox-counter');
@@ -1094,17 +1103,16 @@ function startNetworkPing() {
             else networkStatus.classList.add('bad');
         }).catch(() => { pingValue.textContent = '-- ms'; networkStatus.className = 'network-status bad'; });
     }
-    ping(); setInterval(ping, 3000);
+    ping(); setInterval(ping, 15000);
 }
 
 // ========== 预览 ==========
 function previewFile(filename, userDir = null) {
     const pm = document.getElementById('preview-modal');
     const pc = document.getElementById('preview-content');
-    let pu = `preview.php?file=${encodeURIComponent(filename)}`;
-    if (userDir) pu += `&userDir=${encodeURIComponent(userDir)}`;
-    if (currentPath && currentView === 'personal') pu += `&dir=${encodeURIComponent(currentPath)}`;
-    if (currentPassword) pu += `&password=${encodeURIComponent(currentPassword)}`;
+    const previewParams = { file: filename };
+    if (userDir) previewParams.userDir = userDir;
+    let pu = buildApiUrl('preview.php', { includePassword: true, includePath: currentView === 'personal', params: previewParams });
     const ext = filename.split('.').pop().toLowerCase();
     const imageExts = ['jpg','jpeg','png','gif','webp','bmp','svg'];
     const videoExts = ['mp4','webm','avi','mov'];
@@ -1154,20 +1162,19 @@ function shareFile(filename, userDir = null) {
     document.getElementById('share-modal').classList.add('show');
 }
 function closeShareModal() { document.getElementById('share-modal').classList.remove('show'); }
-function handleShareFile(event) {
+async function handleShareFile(event) {
     event.preventDefault();
     const fn = document.getElementById('share-file-name').value;
     const fd = document.getElementById('share-file-name').dataset.dir || '';
     const ud = document.getElementById('share-user-dir').value;
     const ex = document.getElementById('share-expiry').value;
-    let body = `action=create_share&file=${encodeURIComponent(fn)}&expiry=${ex}&userDir=${encodeURIComponent(ud)}`;
-    if (fd) body += `&dir=${encodeURIComponent(fd)}`;
-    if (currentPassword) body += `&password=${encodeURIComponent(currentPassword)}`;
-    fetch('share.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-        .then(r => r.json()).then(data => {
-            if (data.success) { document.getElementById('share-url').value = data.shareUrl; showToast('分享链接生成成功'); }
-            else { alert('分享失败：' + data.message); }
-        }).catch(error => { console.error('分享失败:', error); alert('分享失败，请重试'); });
+    const params = { file: fn, expiry: ex, userDir: ud };
+    if (fd) params.dir = fd;
+    try {
+        const data = await apiRequest('create_share', { url: 'share.php', params: params });
+        if (data.success) { document.getElementById('share-url').value = data.shareUrl; showToast('分享链接生成成功'); }
+        else { alert('分享失败：' + data.message); }
+    } catch (error) { console.error('分享失败:', error); alert('分享失败，请重试'); }
 }
 function copyShareUrl() {
     const el = document.getElementById('share-url');

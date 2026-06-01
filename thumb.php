@@ -41,9 +41,7 @@ if ($isAdminUser && !empty($userDirParam)) {
     if (!$userDirPath) die('无法确定路径');
     
     if (!empty($subDir)) {
-        $safeSubDir = str_replace(['..', '\\'], '', $subDir);
-        $safeSubDir = trim($safeSubDir, '/');
-        $sourcePath = $userDirPath . $safeSubDir . '/' . $fileName;
+        $sourcePath = safeJoinPath($userDirPath, $subDir) . $fileName;
     } else {
         $sourcePath = $userDirPath . $fileName;
     }

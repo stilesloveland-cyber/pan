@@ -188,8 +188,8 @@ body {
 .breadcrumb .sep { color: var(--text-muted); font-size: 11px; }
 .breadcrumb .current { color: var(--text-secondary); font-weight: 600; }
 
-.file-thumb.folder { color: var(--warning); background: #fffbeb; }
-.file-grid-thumb.folder { color: var(--warning); background: #fffbeb; }
+.file-thumb.folder { color: var(--warning); background: var(--primary-light); }
+.file-grid-thumb.folder { color: var(--warning); background: var(--primary-light); }
 
 .selected-count {
     font-size: 12px; color: var(--primary); font-weight: 600;
@@ -657,7 +657,7 @@ body {
     .file-item { padding: 8px 10px; flex-wrap: nowrap; }
     .file-checkbox { margin-right: 8px; }
     .file-thumb { width: 32px; height: 32px; margin-right: 8px; font-size: 16px; }
-    .file-name { font-size: 12px; max-width: 120px; }
+    .file-name { font-size: 12px; max-width: 200px; }
     .file-meta { font-size: 10px; gap: 6px; flex-wrap: wrap; }
     .file-actions { opacity: 1; gap: 1px; }
     .file-actions .btn-text { padding: 4px 5px; font-size: 11px; }
@@ -679,7 +679,7 @@ body {
     #file-actions-bar .btn-sm { padding: 3px 6px; font-size: 10px; }
     #file-actions-bar .btn-sm i { margin-right: 2px; font-size: 10px; }
     #file-actions-bar .view-toggle button { padding: 3px 6px; font-size: 10px; }
-    #file-actions-bar .search-box input { width: 80px !important; padding: 3px 6px 3px 22px !important; font-size: 10px !important; }
+    #file-actions-bar .search-box input { width: 120px !important; padding: 3px 6px 3px 22px !important; font-size: 11px !important; }
     #file-actions-bar .search-box i { left: 7px; font-size: 10px; }
     .section-header { padding: 10px 12px; }
     .section-header h2 { font-size: 13px; }

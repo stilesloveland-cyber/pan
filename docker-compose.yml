@@ -4,10 +4,23 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     ports:
-      - "6666:80"
+      - "${PAN_PORT:-6666}:80"
     volumes:
       - pan-data:/var/www/uploads
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   pan-data:

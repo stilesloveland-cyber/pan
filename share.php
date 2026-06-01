@@ -55,9 +55,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_share') {
     }
 
     if (!empty($subDir)) {
-        $safeSubDir = str_replace(['..', '\\'], '', $subDir);
-        $safeSubDir = trim($safeSubDir, '/');
-        $filePath = $basePath . $safeSubDir . '/' . $fileName;
+        $safePath = safeJoinPath($basePath, $subDir);
+        $filePath = $safePath . $fileName;
+        $safeSubDir = trim(str_replace(['..', '\\'], '', $subDir), '/');
         $shareUserDir = $shareUserDir . '/' . $safeSubDir;
     } else {
         $filePath = $basePath . $fileName;

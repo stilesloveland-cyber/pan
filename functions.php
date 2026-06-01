@@ -133,6 +133,27 @@ function isCurrentUserAdmin() {
     return $user && isset($user['data']['role']) && $user['data']['role'] === 'admin';
 }
 
+function requireAuth() {
+    $user = getCurrentUser();
+    $password = '';
+    if (!$user) {
+        $password = isset($_POST['password']) ? $_POST['password'] : (isset($_GET['password']) ? $_GET['password'] : '');
+        if (empty($password)) {
+            return [null, null, null];
+        }
+        $user = findUserByPassword($password);
+        if (!$user) {
+            return [null, null, null];
+        }
+    }
+    $isAdminUser = $user['data']['role'] === 'admin';
+    $userDir = $password ? getUserDir($password) : getCurrentUserDir();
+    if ($userDir && !file_exists($userDir) && !$isAdminUser) {
+        mkdir($userDir, 0755, true);
+    }
+    return [$user, $password, $userDir];
+}
+
 // ========== 用户管理 ==========
 
 function getUsers() {
@@ -140,7 +161,7 @@ function getUsers() {
 }
 
 function saveUsers($users) {
-    file_put_contents(USERS_FILE, json_encode($users, JSON_PRETTY_PRINT));
+    file_put_contents(USERS_FILE, json_encode($users, JSON_PRETTY_PRINT), LOCK_EX);
 }
 
 function findUserByPassword($password) {
@@ -234,7 +255,7 @@ function getCachedSize($cacheKey) {
 
 function setCachedSize($cacheKey, $size) {
     $cacheFile = CACHE_DIR . md5($cacheKey) . '.cache';
-    file_put_contents($cacheFile, json_encode(['size' => $size, 'time' => time()]));
+    file_put_contents($cacheFile, json_encode(['size' => $size, 'time' => time()]), LOCK_EX);
 }
 
 function calculateDirectorySize($dir) {
@@ -285,13 +306,20 @@ function calculateGlobalSize() {
 /**
  * 清除空间大小缓存（上传/删除后调用）
  */
-function clearSizeCache() {
+function clearSizeCache($specificKey = null) {
     $cacheDir = CACHE_DIR;
     if (!is_dir($cacheDir)) return;
-    $files = scandir($cacheDir);
-    foreach ($files as $file) {
-        if ($file != '.' && $file != '..' && pathinfo($file, PATHINFO_EXTENSION) === 'cache') {
-            unlink($cacheDir . $file);
+    if ($specificKey) {
+        $cacheFile = $cacheDir . md5($specificKey) . '.cache';
+        if (file_exists($cacheFile)) unlink($cacheFile);
+        $globalCache = $cacheDir . md5('globalsize') . '.cache';
+        if (file_exists($globalCache)) unlink($globalCache);
+    } else {
+        $files = scandir($cacheDir);
+        foreach ($files as $file) {
+            if ($file != '.' && $file != '..' && pathinfo($file, PATHINFO_EXTENSION) === 'cache') {
+                unlink($cacheDir . $file);
+            }
         }
     }
 }

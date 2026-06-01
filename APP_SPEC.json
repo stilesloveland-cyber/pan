@@ -1,0 +1,256 @@
+{
+  "project": "XX网盘 - 优化与修复",
+  "version": "1.0.0",
+  "date": "2026-06-01",
+  "spec_type": "incremental_update",
+  "changes": [
+    {
+      "id": "BUG-001",
+      "title": "修复管理员点击左侧「管理后台」不跳转的BUG",
+      "type": "bugfix",
+      "priority": "critical",
+      "description": "管理员登录后，点击左侧侧边栏的「管理后台」链接无法跳转到 admin.html 页面",
+      "root_cause": "script.js 中 initSidebarNavigation() 对所有 .sidebar-nav a 绑定了 e.preventDefault()，但管理后台链接 <a href='admin.html'> 没有 data-view 属性，导致默认跳转被阻止后也没有 SPA 视图可切换，点击无任何效果",
+      "affected_files": [
+        "script.js"
+      ],
+      "fix_plan": {
+        "file": "script.js",
+        "method": "在 initSidebarNavigation() 的点击事件中，判断链接是否具有 href 属性且不以 '#' 开头。如果是，则不调用 e.preventDefault()，允许浏览器执行默认跳转行为；如果是 SPA 内部导航（data-view 属性存在），则走现有的 preventDefault + 视图切换逻辑",
+        "logic": "if (link.getAttribute('href') && !link.getAttribute('href').startsWith('#') && !link.dataset.view) { return; } // 允许默认跳转"
+      },
+      "acceptance_criteria": [
+        "管理员登录后点击「管理后台」能正常跳转到 admin.html",
+        "其他侧边栏导航项（个人文件、公共空间）仍正常工作",
+        "非管理员用户看不到「管理后台」入口"
+      ]
+    },
+    {
+      "id": "FEAT-001",
+      "title": "管理面板存储单位改为 MB/GB 显示与输入",
+      "type": "feature",
+      "priority": "high",
+      "description": "管理后台参数设置中，所有空间配额字段以字节为单位输入和显示，用户需要手动换算（如 10GB = 10737418240），极度不友好。需要改为以 MB/GB 为单位显示和输入",
+      "affected_files": [
+        "admin.html"
+      ],
+      "change_plan": {
+        "ui_changes": [
+          {
+            "field": "全局空间上限",
+            "old": "<label>全局空间上限 (字节)</label><input type='number'>",
+            "new": "<label>全局空间上限</label><div class='size-input-group'><input type='number' id='s-max_total_size' min='0'><select id='u-max_total_size'><option value='MB'>MB</option><option value='GB' selected>GB</option></select></div>"
+          },
+          {
+            "field": "个人空间上限",
+            "old": "<label>个人空间上限 (字节)</label><input type='number'>",
+            "new": "<label>个人空间上限</label><div class='size-input-group'><input type='number' id='s-max_user_size' min='0'><select id='u-max_user_size'><option value='MB'>MB</option><option value='GB' selected>GB</option></select></div>"
+          },
+          {
+            "field": "公共空间上限",
+            "old": "<label>公共空间上限 (字节)</label><input type='number'>",
+            "new": "<label>公共空间上限</label><div class='size-input-group'><input type='number' id='s-max_public_size' min='0'><select id='u-max_public_size'><option value='MB'>MB</option><option value='GB' selected>GB</option></select></div>"
+          },
+          {
+            "field": "单文件最大",
+            "old": "<label>单文件最大 (字节)</label><input type='number'>",
+            "new": "<label>单文件最大</label><div class='size-input-group'><input type='number' id='s-max_file_size' min='0'><select id='u-max_file_size'><option value='MB' selected>MB</option><option value='GB'>GB</option></select></div>"
+          },
+          {
+            "field": "分片大小",
+            "old": "<label>分片大小 (字节)</label><input type='number'>",
+            "new": "<label>分片大小</label><div class='size-input-group'><input type='number' id='s-chunk_size' min='0'><select id='u-chunk_size'><option value='MB' selected>MB</option></select></div>"
+          }
+        ],
+        "js_logic": {
+          "load_settings": "从后端获取字节数后，根据数值自动选择最合适的单位（MB或GB），将转换后的数值填入输入框，并设置对应下拉框选项。规则：>= 1GB 时用 GB 显示，否则用 MB 显示",
+          "save_settings": "提交前将输入值 × 所选单位的换算系数转回字节。MB × 1048576，GB × 1073741824",
+          "auto_unit_detection": "加载时自动检测：若值 % 1073741824 === 0 则用 GB，否则若值 % 1048576 === 0 则用 MB，否则保留精确值用 MB"
+        },
+        "css": ".size-input-group { display: flex; gap: 8px; } .size-input-group input { flex: 1; } .size-input-group select { width: 70px; }"
+      },
+      "acceptance_criteria": [
+        "打开管理后台参数设置，空间配额字段显示为 MB/GB 单位而非字节",
+        "加载时自动选择最合适的单位（如 10GB 显示为 10 GB 而非 10737418240 字节）",
+        "保存时正确将 MB/GB 值转回字节提交给后端",
+        "切换单位后数值自动重新计算（如从 1 GB 切换为 MB 时变为 1024 MB）"
+      ]
+    },
+    {
+      "id": "FEAT-002",
+      "title": "管理面板添加安全风险检测区域",
+      "type": "feature",
+      "priority": "high",
+      "description": "在管理面板中新增「安全风险」区域，检测并展示当前系统存在的安全风险项，对敏感或危险配置保留一个安全范围提示，帮助管理员识别和修复安全隐患",
+      "affected_files": [
+        "admin.html",
+        "admin.php"
+      ],
+      "change_plan": {
+        "admin_nav": {
+          "position": "after_extensions_before_users",
+          "html": "<li><a href='#' data-section='security'><i class='fas fa-shield-alt'></i> 安全风险</a></li>"
+        },
+        "section_html": {
+          "id": "section-security",
+          "content": "安全风险检测面板，包含风险项列表，每项显示：风险等级（高/中/低）、风险描述、当前值、安全范围建议、修复建议"
+        },
+        "risk_items": [
+          {
+            "id": "default_admin_password",
+            "label": "默认管理员密码",
+            "severity": "high",
+            "check_logic": "admin.php 检查 admin 用户的密码是否为默认值 'admin'，通过 password_verify('admin', hash) 验证",
+            "safe_range": "非默认强密码",
+            "fix_suggestion": "请立即修改管理员默认密码"
+          },
+          {
+            "id": "cookie_secure",
+            "label": "Cookie Secure 标志",
+            "severity": "medium",
+            "check_logic": "检查 session.cookie_secure 是否启用",
+            "safe_range": "true（生产环境必须启用 HTTPS）",
+            "fix_suggestion": "在 functions.php 中将 session cookie secure 设为 true，并确保站点使用 HTTPS"
+          },
+          {
+            "id": "fix_users_exposed",
+            "label": "fix_users.php 可公开访问",
+            "severity": "high",
+            "check_logic": "检查 fix_users.php 是否可通过 HTTP 直接访问（无认证保护）",
+            "safe_range": "不可公开访问",
+            "fix_suggestion": "删除 fix_users.php 或在文件顶部添加管理员认证检查"
+          },
+          {
+            "id": "chunk_upload_mime",
+            "label": "分片上传缺少 MIME 检查",
+            "severity": "high",
+            "check_logic": "硬编码返回 warning，提示分片上传流程仅检查扩展名未检查 MIME 类型",
+            "safe_range": "分片合并后应执行 isSafeFile() 检查",
+            "fix_suggestion": "在 merge_chunks 完成后调用 isSafeFile() 验证文件 MIME 类型"
+          },
+          {
+            "id": "max_file_size_vs_disk",
+            "label": "单文件大小上限合理性",
+            "severity": "low",
+            "check_logic": "检查 max_file_size 是否超过磁盘剩余空间的 80%",
+            "safe_range": "不超过磁盘可用空间的 80%",
+            "fix_suggestion": "降低单文件大小上限或扩容磁盘"
+          },
+          {
+            "id": "session_lifetime",
+            "label": "会话有效期过长",
+            "severity": "medium",
+            "check_logic": "检查 session_lifetime 是否超过 7 天（604800秒）",
+            "safe_range": "1-7 天（86400-604800 秒）",
+            "fix_suggestion": "缩短会话有效期至合理范围"
+          },
+          {
+            "id": "admin_page_exposed",
+            "label": "管理面板页面无前端权限校验",
+            "severity": "low",
+            "check_logic": "admin.html 为纯静态页面，无前端权限检查，直接访问可看到界面框架",
+            "safe_range": "前端应检查权限，非管理员应重定向",
+            "fix_suggestion": "在 admin.html 加载时调用 API 验证管理员身份，非管理员重定向到 index.html"
+          },
+          {
+            "id": "upload_no_ratelimit",
+            "label": "上传接口无频率限制",
+            "severity": "medium",
+            "check_logic": "硬编码返回 warning，上传接口无请求频率限制",
+            "safe_range": "建议限制每分钟上传请求次数",
+            "fix_suggestion": "添加基于 IP 或会话的上传频率限制机制"
+          }
+        ],
+        "backend_api": {
+          "action": "security_check",
+          "method": "GET",
+          "auth": "admin",
+          "response_format": {
+            "success": true,
+            "risks": [
+              {
+                "id": "default_admin_password",
+                "label": "默认管理员密码",
+                "severity": "high",
+                "status": "warning|pass",
+                "current": "当前值描述",
+                "safe_range": "安全范围描述",
+                "fix_suggestion": "修复建议"
+              }
+            ]
+          }
+        },
+        "frontend_render": {
+          "severity_colors": {
+            "high": "#e74c3c",
+            "medium": "#f39c12",
+            "low": "#3498db"
+          },
+          "severity_labels": {
+            "high": "高风险",
+            "medium": "中风险",
+            "low": "低风险"
+          },
+          "layout": "每个风险项为一个卡片，左侧显示风险等级色条，右侧显示风险标题、当前状态、安全范围、修复建议"
+        }
+      },
+      "acceptance_criteria": [
+        "管理后台左侧导航出现「安全风险」入口",
+        "点击后显示安全风险检测面板",
+        "每个风险项显示等级、描述、当前状态、安全范围、修复建议",
+        "高风险项用红色标识，中风险用橙色，低风险用蓝色",
+        "后端 API 正确检测各项风险状态",
+        "非管理员无法访问 security_check API"
+      ]
+    },
+    {
+      "id": "OPT-001",
+      "title": "安全加固：修复已知风险项",
+      "type": "optimization",
+      "priority": "high",
+      "description": "针对安全风险检测中发现的高优先级问题进行代码层面修复",
+      "affected_files": [
+        "upload.php",
+        "fix_users.php",
+        "admin.html",
+        "functions.php"
+      ],
+      "fix_items": [
+        {
+          "id": "FIX-SEC-001",
+          "file": "upload.php",
+          "change": "在 merge_chunks 动作中，合并完成后添加 isSafeFile() MIME 类型检查，若不通过则删除已合并文件并返回错误",
+          "location": "merge_chunks action，文件合并成功后",
+          "logic": "if (!isSafeFile($targetPath, $fileName)) { unlink($targetPath); echo json_encode(['success'=>false,'message'=>'文件类型不允许']); exit; }"
+        },
+        {
+          "id": "FIX-SEC-002",
+          "file": "fix_users.php",
+          "change": "在文件顶部添加管理员认证检查，非管理员或未登录用户直接 403 退出",
+          "location": "require_once 之后",
+          "logic": "require_once __DIR__.'/functions.php'; initSystem(); $user = getCurrentUser(); if (!$user || !isset($user['data']['role']) || $user['data']['role'] !== 'admin') { http_response_code(403); echo 'Forbidden'; exit; }"
+        },
+        {
+          "id": "FIX-SEC-003",
+          "file": "admin.html",
+          "change": "在页面加载时调用 upload.php?action=ping 和 files.php 验证管理员身份，若非管理员则重定向到 index.html",
+          "location": "DOMContentLoaded 事件中，最优先执行",
+          "logic": "fetch('files.php').then(r=>r.json()).then(d=>{ if(!d.success || !d.admin) window.location.href='index.html'; }).catch(()=>window.location.href='index.html');"
+        }
+      ],
+      "acceptance_criteria": [
+        "分片上传合并后若 MIME 类型不合法，文件被删除并返回错误",
+        "fix_users.php 未登录或非管理员访问返回 403",
+        "admin.html 非管理员访问自动重定向到 index.html",
+        "正常管理员操作不受影响"
+      ]
+    }
+  ],
+  "out_of_scope": [
+    "不修改 index.php（旧版本入口文件）",
+    "不修改 Docker 配置",
+    "不修改 Nginx 配置",
+    "不添加上传频率限制（仅作为风险提示展示，实际功能留待后续版本）",
+    "不修改 session.cookie_secure（仅作为风险提示展示，因开发环境可能无 HTTPS）"
+  ]
+}

@@ -11,7 +11,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 // 认证（会话优先，兼容密码参数）
 $user = getCurrentUser();
-$password = isset($_GET['password']) ? $_GET['password'] : '';
+$password = isset($_POST['password']) ? $_POST['password'] : (isset($_GET['password']) ? $_GET['password'] : '');
 
 if (!$user && !empty($password)) {
     $user = findUserByPassword($password);

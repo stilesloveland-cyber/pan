@@ -14,8 +14,14 @@ chown -R www-data:www-data /var/www/html/pan
 chmod -R 755 /var/www/html/pan
 
 if [ ! -f /var/www/uploads/users.json ]; then
+    echo 'Creating initial users.json - will be populated by initSystem()'
     echo '{}' > /var/www/uploads/users.json
     chown www-data:www-data /var/www/uploads/users.json
+fi
+
+if [ ! -f /var/www/uploads/settings.json ]; then
+    echo '{}' > /var/www/uploads/settings.json
+    chown www-data:www-data /var/www/uploads/settings.json
 fi
 
 mkdir -p /run/nginx

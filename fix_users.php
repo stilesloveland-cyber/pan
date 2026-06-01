@@ -2,8 +2,13 @@
 require_once __DIR__ . '/functions.php';
 initSystem();
 
-// 直接调用 initSystem() 应该会自动创建正确的 users.json
-// 如果没有，我们手动创建
+$user = getCurrentUser();
+if (!$user || !isset($user['data']['role']) || $user['data']['role'] !== 'admin') {
+    http_response_code(403);
+    echo 'Forbidden';
+    exit;
+}
+
 if (!file_exists(USERS_FILE)) {
     $adminDir = BASE_UPLOAD_DIR . md5('admin') . '/';
     $users = [
@@ -13,7 +18,7 @@ if (!file_exists(USERS_FILE)) {
             'role' => 'admin'
         ]
     ];
-    file_put_contents(USERS_FILE, json_encode($users, JSON_PRETTY_PRINT));
+    file_put_contents(USERS_FILE, json_encode($users, JSON_PRETTY_PRINT), LOCK_EX);
     if (!file_exists($adminDir)) {
         mkdir($adminDir, 0755, true);
     }

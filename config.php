@@ -38,7 +38,7 @@ function getSettings() {
 }
 
 function saveSettings($settings) {
-    file_put_contents(SETTINGS_FILE, json_encode($settings, JSON_PRETTY_PRINT));
+    file_put_contents(SETTINGS_FILE, json_encode($settings, JSON_PRETTY_PRINT), LOCK_EX);
 }
 
 function getServerDiskInfo() {

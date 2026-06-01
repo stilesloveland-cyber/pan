@@ -25,6 +25,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'register') {
         echo json_encode(['success' => false, 'message' => '请输入密码']);
         exit;
     }
+    if (strlen($password) < 4) {
+        echo json_encode(['success' => false, 'message' => '密码长度不能少于4位']);
+        exit;
+    }
 
     if (registerUser($password)) {
         // 注册后自动登录
@@ -70,6 +74,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
         echo json_encode(['success' => false, 'message' => '请输入当前密码和新密码']);
         exit;
     }
+    if (strlen($newPassword) < 4) {
+        echo json_encode(['success' => false, 'message' => '新密码长度不能少于4位']);
+        exit;
+    }
 
     if (changeUserPassword($currentPassword, $newPassword)) {
         echo json_encode(['success' => true, 'message' => '密码修改成功，请重新登录']);
@@ -106,8 +114,8 @@ if (!$userDir || (!file_exists($userDir) && !$isAdminUser)) {
 
 // ========== 获取当前目录路径（支持子文件夹） ==========
 $currentDir = $userDir;
-if (isset($_REQUEST['dir']) && !empty($_REQUEST['dir'])) {
-    $reqDir = safeJoinPath($userDir, $_REQUEST['dir']);
+if (isset($_GET['dir']) && !empty($_GET['dir'])) {
+    $reqDir = safeJoinPath($userDir, $_GET['dir']);
     if (strpos($reqDir, $userDir) === 0) {
         $currentDir = $reqDir;
     }
@@ -250,6 +258,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'upload_chunk') {
     $totalChunks = isset($_POST['total_chunks']) ? intval($_POST['total_chunks']) : 0;
     $fileName = isset($_POST['file_name']) ? $_POST['file_name'] : '';
     $fileSize = isset($_POST['file_size']) ? intval($_POST['file_size']) : 0;
+    if ($fileSize <= 0 || $fileSize > MAX_FILE_SIZE) {
+        echo json_encode(['success' => false, 'message' => '文件大小参数无效']);
+        exit;
+    }
     $isPublic = isset($_POST['is_public']) && $_POST['is_public'] === 'true';
 
     if (empty($uploadId) || empty($fileName) || !isset($_FILES['chunk'])) {
@@ -358,6 +370,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'merge_chunks') {
         unlink($chunkFile);
     }
     fclose($fp);
+
+    if (!isSafeFile($destination, $fileName)) {
+        @unlink($destination);
+        @rmdir($chunkDir);
+        echo json_encode(['success' => false, 'message' => '文件类型不允许上传']);
+        exit;
+    }
 
     // 清理分片目录
     @rmdir($chunkDir);

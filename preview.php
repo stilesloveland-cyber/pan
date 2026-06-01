@@ -47,9 +47,7 @@ if ($isAdminUser && !empty($userDirParam)) {
 
 // 安全拼接子文件夹路径
 if (!empty($subDir)) {
-    $safeSubDir = str_replace(['..', '\\'], '', $subDir);
-    $safeSubDir = trim($safeSubDir, '/');
-    $filePath = $basePath . $safeSubDir . '/' . $fileName;
+    $filePath = safeJoinPath($basePath, $subDir) . $fileName;
 } else {
     $filePath = $basePath . $fileName;
 }
