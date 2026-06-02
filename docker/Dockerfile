@@ -17,7 +17,7 @@ RUN apk add --no-cache \
     && apk del $PHPIZE_DEPS linux-headers \
     && apk add --no-cache libpng libjpeg-turbo freetype libzip
 
-RUN mkdir -p /var/www/html/pan /var/www/uploads /run/nginx /var/log/supervisor
+RUN mkdir -p /var/www/html/pan /var/www/uploads /run/nginx /var/log/supervisor /var/log/php-fpm
 
 COPY . /var/www/html/pan/
 COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
