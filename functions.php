@@ -51,6 +51,12 @@ function initSystem() {
             mkdir($adminDir, 0755, true);
         }
     }
+
+    // 预置默认配置
+    if (!file_exists(SETTINGS_FILE)) {
+        global $DEFAULT_SETTINGS;
+        file_put_contents(SETTINGS_FILE, json_encode($DEFAULT_SETTINGS, JSON_PRETTY_PRINT), LOCK_EX);
+    }
 }
 
 // ========== 用户认证（会话优先，兼容密码参数） ==========
