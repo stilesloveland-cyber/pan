@@ -76,7 +76,6 @@ header('Expires: 0');
 header('Cache-Control: must-revalidate');
 header('Pragma: public');
 header('Accept-Ranges: bytes');
-header('X-Accel-Redirect: /protected-uploads/' . ltrim(str_replace(BASE_UPLOAD_DIR, '', $realFilePath), '/'));
 
 if (isset($_SERVER['HTTP_RANGE'])) {
     preg_match('/bytes=(\d+)-(\d*)/', $_SERVER['HTTP_RANGE'], $matches);
