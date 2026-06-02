@@ -15,7 +15,8 @@ function initSystem() {
         strpos($_SERVER['HTTP_HOST'], '127.0.0.1') === false &&
         strpos($_SERVER['HTTP_HOST'], ':') === false) {
         $redirectUrl = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-        header('HTTP/1.1 301 Moved Permanently');
+        $statusCode = ($_SERVER['REQUEST_METHOD'] === 'POST') ? '307 Temporary Redirect' : '301 Moved Permanently';
+        header("HTTP/1.1 $statusCode");
         header('Location: ' . $redirectUrl);
         exit;
     }
