@@ -337,7 +337,17 @@ function initDragAndDrop() {
         e.preventDefault(); uploadArea.classList.remove('dragover');
         if (e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files, false);
     });
-    uploadArea.addEventListener('click', (e) => { if (!e.target.closest('button')) fileInput.click(); });
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        
+        const rect = uploadArea.getBoundingClientRect();
+        if (e.clientX < rect.left || e.clientX > rect.right ||
+            e.clientY < rect.top || e.clientY > rect.bottom) {
+            return;
+        }
+        
+        fileInput.click();
+    });
 }
 
 function initFileInput() {
@@ -346,7 +356,8 @@ function initFileInput() {
 
 function uploadToPublic() { fileInput.click(); fileInput.dataset.isPublic = 'true'; }
 
-const CHUNK_SIZE = 10 * 1024 * 1024;
+const CHUNK_SIZE = 20 * 1024 * 1024;
+const NO_CHUNK_THRESHOLD = 80 * 1024 * 1024;
 let currentXhr = null;
 let currentChunkUpload = null;
 
@@ -357,7 +368,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
     let uploadedBytes = 0;
     const { onProgress, onSpeed } = progressCallbacks;
     const startTime = Date.now();
-    const CONCURRENCY = 5;
+    const CONCURRENCY = 20;
 
     const state = { cancelled: false };
     currentChunkUpload = state;
@@ -474,8 +485,8 @@ function uploadFiles(fileList, isPublic = false) {
     // 显示文件列表
     let filesHtml = '';
     for (let i = 0; i < fileList.length; i++) {
-        const icon = fileList[i].size >= CHUNK_SIZE ? '<i class="fas fa-file"></i>' : '<i class="fas fa-file"></i>';
-        const tag = fileList[i].size >= CHUNK_SIZE ? ' <span class="chunk-badge">分片</span>' : '';
+        const icon = fileList[i].size > NO_CHUNK_THRESHOLD ? '<i class="fas fa-file"></i>' : '<i class="fas fa-file"></i>';
+        const tag = fileList[i].size > NO_CHUNK_THRESHOLD ? ' <span class="chunk-badge">分片</span>' : '';
         filesHtml += `<div class="progress-file-item"><span class="name">${icon} ${escHtml(fileList[i].name)}${tag}</span><span class="size">${formatFileSize(fileList[i].size)}</span></div>`;
     }
     progressFiles.innerHTML = filesHtml;
@@ -566,8 +577,8 @@ function uploadFiles(fileList, isPublic = false) {
 
             for (let i = 0; i < fileList.length; i++) {
                 const file = fileList[i];
-                if (file.size >= CHUNK_SIZE) {
-                    // 分片上传大文件
+                if (file.size > NO_CHUNK_THRESHOLD) {
+                    // 分片上传大文件（超过80MB）
                     try {
                         progressSpeed.textContent = '准备分片...';
                         const data = await uploadFileInChunks(file, isPublic, {
@@ -592,15 +603,41 @@ function uploadFiles(fileList, isPublic = false) {
                         break;
                     }
                 } else {
-                    // 小文件逐个上传
+                    // 小文件逐个上传（使用XHR获取进度）
                     const formData = new FormData();
                     formData.append('files[]', file);
                     formData.append('is_public', isPublic);
                     appendCommonFormData(formData, { includePath: !isPublic });
 
                     try {
-                        const resp = await fetch('upload.php', { method: 'POST', body: formData });
-                        const data = await resp.json();
+                        const data = await new Promise((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            currentXhr = xhr;
+                            
+                            xhr.upload.addEventListener('progress', function(e) {
+                                if (e.lengthComputable) {
+                                    updateProgress(completedSize + e.loaded, totalSize);
+                                }
+                            });
+                            
+                            xhr.addEventListener('load', function() {
+                                currentXhr = null;
+                                try {
+                                    resolve(JSON.parse(xhr.responseText));
+                                } catch (e) {
+                                    reject(new Error('解析响应失败'));
+                                }
+                            });
+                            
+                            xhr.addEventListener('error', function() {
+                                currentXhr = null;
+                                reject(new Error('网络错误'));
+                            });
+                            
+                            xhr.open('POST', 'upload.php');
+                            xhr.send(formData);
+                        });
+                        
                         completedSize += file.size;
                         updateProgress(completedSize, totalSize);
                         lastData = data;
@@ -625,10 +662,11 @@ function uploadFiles(fileList, isPublic = false) {
 function cancelUpload() {
     if (currentChunkUpload) {
         currentChunkUpload.cancelled = true;
-        currentChunkUpload = null;
     }
     if (currentXhr) {
-        currentXhr.abort();
+        try {
+            currentXhr.abort();
+        } catch (e) {}
         currentXhr = null;
     }
     progressBar.classList.remove('show');
@@ -702,7 +740,9 @@ function initSidebarNavigation() {
     const sidebarLinks = document.querySelectorAll('.sidebar-nav a');
     sidebarLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            if (link.getAttribute('href') && !link.getAttribute('href').startsWith('#') && !link.dataset.view) {
+            const href = link.getAttribute('href');
+            if (href && !href.startsWith('#') && !link.dataset.view) {
+                window.location.href = href;
                 return;
             }
             e.preventDefault();
@@ -887,6 +927,38 @@ function selectAllFiles() {
         document.querySelectorAll('.file-grid-item').forEach(el => el.classList.add('selected'));
     }
     updateSelectionUI();
+}
+
+// ========== 直接下载选中文件 ==========
+function downloadSelectedFiles() {
+    if (selectedFiles.length === 0) { showToast('请先选择要下载的文件', true); return; }
+    
+    if (selectedFiles.length === 1) {
+        // 单个文件直接下载
+        const filename = selectedFiles[0];
+        const url = buildApiUrl('download.php', { includePassword: true, includePath: currentView === 'personal', params: { file: filename } });
+        window.location.href = url;
+    } else {
+        // 多个文件，依次下载
+        let index = 0;
+        function downloadNext() {
+            if (index >= selectedFiles.length) return;
+            const filename = selectedFiles[index];
+            const url = buildApiUrl('download.php', { includePassword: true, includePath: currentView === 'personal', params: { file: filename } });
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = decodeURIComponent(filename.replace(/^[0-9a-fA-F_]+_/, ''));
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            index++;
+            setTimeout(downloadNext, 500);
+        }
+        showToast(`正在下载 ${selectedFiles.length} 个文件...`);
+        downloadNext();
+    }
 }
 
 // ========== ZIP 打包下载 ==========
@@ -1111,7 +1183,7 @@ function startNetworkPing() {
             else networkStatus.classList.add('bad');
         }).catch(() => { pingValue.textContent = '-- ms'; networkStatus.className = 'network-status bad'; });
     }
-    ping(); setInterval(ping, 15000);
+    ping(); setInterval(ping, 30000);
 }
 
 // ========== 预览 ==========

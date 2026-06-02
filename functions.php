@@ -7,13 +7,27 @@ require_once __DIR__ . '/config.php';
 
 // ========== 会话管理 ==========
 function initSystem() {
+    // HTTP 重定向到 HTTPS（生产环境）
+    if (isset($_SERVER['HTTP_HOST']) && 
+        isset($_SERVER['REQUEST_URI']) && 
+        !isset($_SERVER['HTTPS']) && 
+        $_SERVER['HTTP_HOST'] !== 'localhost' &&
+        strpos($_SERVER['HTTP_HOST'], '127.0.0.1') === false &&
+        strpos($_SERVER['HTTP_HOST'], ':') === false) {
+        $redirectUrl = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        header('HTTP/1.1 301 Moved Permanently');
+        header('Location: ' . $redirectUrl);
+        exit;
+    }
+
     // 启动会话（安全配置）
+    $isSecure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
     if (session_status() === PHP_SESSION_NONE) {
         session_set_cookie_params([
             'lifetime' => 86400 * 7,
             'path' => '/',
             'domain' => '',
-            'secure' => false,
+            'secure' => $isSecure,
             'httponly' => true,
             'samesite' => 'Lax'
         ]);

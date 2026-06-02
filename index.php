@@ -187,6 +187,9 @@
                                 <button class="btn btn-sm" onclick="showMoveSelectedModal()" id="btn-move-selected" title="移动到">
                                     <i class="fas fa-folder-open"></i> 移动到
                                 </button>
+                                <button class="btn btn-sm" onclick="downloadSelectedFiles()" id="btn-download" title="直接下载">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
                                 <button class="btn btn-sm" onclick="downloadSelectedAsZip()" id="btn-zip-download" title="打包下载">
                                     <i class="fas fa-file-archive"></i> 打包
                                 </button>

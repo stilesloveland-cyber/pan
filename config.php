@@ -13,7 +13,7 @@ $DEFAULT_SETTINGS = [
     'max_public_size' => 5 * 1024 * 1024 * 1024,
     'max_file_size' => 10 * 1024 * 1024 * 1024,
     'max_files_per_upload' => 50,
-    'chunk_size' => 5 * 1024 * 1024,
+    'chunk_size' => 20 * 1024 * 1024,
     'blocked_extensions' => [
         'exe', 'msi', 'bat', 'cmd', 'com', 'scr',
         'php', 'phtml', 'php3', 'php4', 'php5', 'php7',

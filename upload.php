@@ -114,8 +114,9 @@ if (!$userDir || (!file_exists($userDir) && !$isAdminUser)) {
 
 // ========== 获取当前目录路径（支持子文件夹） ==========
 $currentDir = $userDir;
-if (isset($_GET['dir']) && !empty($_GET['dir'])) {
-    $reqDir = safeJoinPath($userDir, $_GET['dir']);
+$reqDirParam = isset($_POST['dir']) ? $_POST['dir'] : (isset($_GET['dir']) ? $_GET['dir'] : '');
+if (!empty($reqDirParam)) {
+    $reqDir = safeJoinPath($userDir, $reqDirParam);
     if (strpos($reqDir, $userDir) === 0) {
         $currentDir = $reqDir;
     }
@@ -163,7 +164,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'move') {
         exit;
     }
 
-    $sourcePath = $currentDir . $itemName;
+    $sourcePath = $userDir . $itemName;
     $destPath = $targetPath . $itemName;
 
     if (!file_exists($sourcePath)) {
