@@ -67,13 +67,34 @@ foreach ($publicFiles as &$f) {
     $f['isPublic'] = true;
 }
 
-// 排序（默认按时间倒序）
-usort($files, function($a, $b) {
-    return $b['date'] - $a['date'];
-});
-usort($publicFiles, function($a, $b) {
-    return $b['date'] - $a['date'];
-});
+// 排序（按配置）
+$sortField = DEFAULT_SORT;
+switch ($sortField) {
+    case 'date-asc':
+        usort($files, function($a, $b) { return $a['date'] - $b['date']; });
+        usort($publicFiles, function($a, $b) { return $a['date'] - $b['date']; });
+        break;
+    case 'name-asc':
+        usort($files, function($a, $b) { return strcmp($a['name'], $b['name']); });
+        usort($publicFiles, function($a, $b) { return strcmp($a['name'], $b['name']); });
+        break;
+    case 'name-desc':
+        usort($files, function($a, $b) { return strcmp($b['name'], $a['name']); });
+        usort($publicFiles, function($a, $b) { return strcmp($b['name'], $a['name']); });
+        break;
+    case 'size-desc':
+        usort($files, function($a, $b) { return $b['size'] - $a['size']; });
+        usort($publicFiles, function($a, $b) { return $b['size'] - $a['size']; });
+        break;
+    case 'size-asc':
+        usort($files, function($a, $b) { return $a['size'] - $b['size']; });
+        usort($publicFiles, function($a, $b) { return $a['size'] - $b['size']; });
+        break;
+    default: // date-desc
+        usort($files, function($a, $b) { return $b['date'] - $a['date']; });
+        usort($publicFiles, function($a, $b) { return $b['date'] - $a['date']; });
+        break;
+}
 
 // 空间统计
 $usedSize = $userDir ? calculateDirectorySize($userDir) : 0;
@@ -92,5 +113,13 @@ echo json_encode([
     'globalUsedSize' => $globalUsedSize,
     'globalMaxSize' => MAX_TOTAL_SIZE,
     'publicUsedSize' => $publicUsedSize,
-    'publicMaxSize' => MAX_PUBLIC_SIZE
+    'publicMaxSize' => MAX_PUBLIC_SIZE,
+    'chunk_size' => CHUNK_SIZE,
+    'no_chunk_threshold' => CHUNK_SIZE * 4,
+    'default_sort' => DEFAULT_SORT,
+    'per_page_count' => PER_PAGE_COUNT,
+    'site_name' => SITE_NAME,
+    'enable_public_area' => ENABLE_PUBLIC_AREA,
+    'enable_share' => ENABLE_SHARE,
+    'allow_registration' => ALLOW_REGISTRATION
 ]);

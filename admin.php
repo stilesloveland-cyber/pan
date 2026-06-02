@@ -53,10 +53,28 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $intFields = [
         'max_total_size', 'max_user_size', 'max_public_size',
         'max_file_size', 'max_files_per_upload', 'chunk_size',
-        'session_lifetime', 'cache_ttl', 'thumb_width', 'thumb_height'
+        'session_lifetime', 'cache_ttl', 'thumb_width', 'thumb_height',
+        'max_login_attempts', 'login_ban_minutes', 'recycle_bin_days',
+        'max_preview_size', 'max_share_expiry_days', 'per_page_count',
+        'max_concurrent_downloads'
     ];
     foreach ($intFields as $f) {
         if (isset($data[$f])) $settings[$f] = max(0, intval($data[$f]));
+    }
+
+    $boolFields = [
+        'allow_registration', 'auto_rename', 'enable_share',
+        'maintenance_mode', 'enable_public_area'
+    ];
+    foreach ($boolFields as $f) {
+        if (isset($data[$f])) $settings[$f] = (bool)$data[$f];
+    }
+
+    $stringFields = [
+        'site_name', 'default_sort', 'default_sort_order'
+    ];
+    foreach ($stringFields as $f) {
+        if (isset($data[$f])) $settings[$f] = trim(strval($data[$f]));
     }
 
     if ($settings['max_total_size'] > $maxAllowed) {

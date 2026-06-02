@@ -72,6 +72,29 @@ if (!$isAdminUser) {
 $originalName = preg_replace('/^[0-9a-fA-F_]+_/', '', $fileName);
 $fileExt = strtolower(pathinfo($realFilePath, PATHINFO_EXTENSION));
 
+$fileSize = filesize($realFilePath);
+
+// 检查文件大小是否超过预览限制
+if ($fileSize > MAX_PREVIEW_SIZE) {
+    $imageExts = ['jpg','jpeg','png','gif','webp','bmp','svg'];
+    $videoExts = ['mp4','webm','avi','mov'];
+    $audioExts = ['mp3','wav','flac','ogg','aac'];
+    $textExts  = ['txt','md','html','css','js','json','xml','php','log','yaml','yml','conf','ini'];
+    $previewExts = array_merge($imageExts, $videoExts, $audioExts, $textExts, ['pdf']);
+
+    if (in_array($fileExt, $previewExts)) {
+        $sizeMB = round($fileSize / 1024 / 1024, 1);
+        $previewLimitMB = round(MAX_PREVIEW_SIZE / 1024 / 1024, 1);
+        header('Content-Type: text/html; charset=utf-8');
+        die("<div style='text-align:center;padding:60px 20px;font-family:sans-serif;color:#666'>
+            <i class='fas fa-file' style='font-size:56px;margin-bottom:16px;color:#ccc;display:block'></i>
+            <p style='font-size:16px;margin-bottom:8px'>文件过大，无法在线预览</p>
+            <p style='font-size:13px;color:#999'>文件大小: {$sizeMB}MB | 预览上限: {$previewLimitMB}MB</p>
+            <p style='font-size:13px;color:#999'>请下载后使用本地应用查看</p>
+        </div>");
+    }
+}
+
 $mimeTypes = [
     'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg',
     'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',

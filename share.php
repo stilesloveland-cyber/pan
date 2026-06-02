@@ -11,6 +11,10 @@ header('Content-Type: application/json; charset=utf-8');
 
 // ========== 创建分享链接 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'create_share') {
+    if (!ENABLE_SHARE) {
+        echo json_encode(['success' => false, 'message' => '分享功能已关闭']);
+        exit;
+    }
     $file = isset($_POST['file']) ? $_POST['file'] : '';
     $expiry = isset($_POST['expiry']) ? (int)$_POST['expiry'] : 1;
     $userDirParam = isset($_POST['userDir']) ? $_POST['userDir'] : '';
@@ -18,6 +22,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_share') {
     if (empty($file)) {
         echo json_encode(['success' => false, 'message' => '缺少必要参数']);
         exit;
+    }
+
+    // 限制最大过期天数
+    if ($expiry > MAX_SHARE_EXPIRY_DAYS) {
+        $expiry = MAX_SHARE_EXPIRY_DAYS;
     }
 
     // 认证（会话优先，兼容密码参数）

@@ -8,12 +8,38 @@ define('THUMB_DIR', BASE_UPLOAD_DIR . 'thumbs/');
 define('SETTINGS_FILE', BASE_UPLOAD_DIR . 'settings.json');
 
 $DEFAULT_SETTINGS = [
+    // 空间配额
     'max_total_size' => 10 * 1024 * 1024 * 1024,
     'max_user_size' => 2 * 1024 * 1024 * 1024,
     'max_public_size' => 5 * 1024 * 1024 * 1024,
     'max_file_size' => 10 * 1024 * 1024 * 1024,
     'max_files_per_upload' => 50,
     'chunk_size' => 20 * 1024 * 1024,
+
+    // 注册与登录
+    'allow_registration' => true,
+    'max_login_attempts' => 5,
+    'login_ban_minutes' => 15,
+
+    // 文件管理
+    'auto_rename' => true,
+    'recycle_bin_days' => 0,
+    'default_sort' => 'date-desc',
+    'default_sort_order' => 'desc',
+    'per_page_count' => 50,
+
+    // 预览与分享
+    'max_preview_size' => 100 * 1024 * 1024,
+    'enable_share' => true,
+    'max_share_expiry_days' => 7,
+
+    // 系统运维
+    'maintenance_mode' => false,
+    'site_name' => 'XX网盘',
+    'enable_public_area' => true,
+    'max_concurrent_downloads' => 5,
+
+    // 黑名单 & 会话 & 缓存 & 缩略图
     'blocked_extensions' => [
         'exe', 'msi', 'bat', 'cmd', 'com', 'scr',
         'php', 'phtml', 'php3', 'php4', 'php5', 'php7',
@@ -63,6 +89,21 @@ define('SESSION_LIFETIME', $settings['session_lifetime']);
 define('CACHE_TTL', $settings['cache_ttl']);
 define('THUMB_WIDTH', $settings['thumb_width']);
 define('THUMB_HEIGHT', $settings['thumb_height']);
+define('ALLOW_REGISTRATION', $settings['allow_registration']);
+define('AUTO_RENAME', $settings['auto_rename']);
+define('MAX_PREVIEW_SIZE', $settings['max_preview_size']);
+define('ENABLE_SHARE', $settings['enable_share']);
+define('MAX_SHARE_EXPIRY_DAYS', $settings['max_share_expiry_days']);
+define('MAINTENANCE_MODE', $settings['maintenance_mode']);
+define('SITE_NAME', $settings['site_name']);
+define('ENABLE_PUBLIC_AREA', $settings['enable_public_area']);
+define('DEFAULT_SORT', $settings['default_sort']);
+define('DEFAULT_SORT_ORDER', $settings['default_sort_order']);
+define('PER_PAGE_COUNT', $settings['per_page_count']);
+define('MAX_LOGIN_ATTEMPTS', $settings['max_login_attempts']);
+define('LOGIN_BAN_MINUTES', $settings['login_ban_minutes']);
+define('RECYCLE_BIN_DAYS', $settings['recycle_bin_days']);
+define('MAX_CONCURRENT_DOWNLOADS', $settings['max_concurrent_downloads']);
 
 $BLOCKED_EXTENSIONS = $settings['blocked_extensions'];
 

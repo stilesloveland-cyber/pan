@@ -15,6 +15,10 @@ let publicUsedSize = 0;
 let publicMaxSize = 5 * 1024 * 1024 * 1024;
 let isAdmin = false;
 let isLoggedIn = false;
+let siteName = 'XX网盘';
+let enablePublicArea = true;
+let enableShare = true;
+let allowRegistration = true;
 
 // DOM元素
 const loginContainer = document.getElementById('login-container');
@@ -136,6 +140,14 @@ async function checkSession() {
             files = data.files || [];
             publicFiles = data.publicFiles || [];
             updateSpaceUsage(data);
+            if (data.chunk_size) {
+                CHUNK_SIZE = data.chunk_size;
+                NO_CHUNK_THRESHOLD = data.no_chunk_threshold || data.chunk_size * 4;
+            }
+            if (data.site_name) siteName = data.site_name;
+            if (data.enable_public_area !== undefined) enablePublicArea = data.enable_public_area;
+            if (data.enable_share !== undefined) enableShare = data.enable_share;
+            if (data.allow_registration !== undefined) allowRegistration = data.allow_registration;
             return true;
         }
     } catch (e) {}
@@ -147,6 +159,11 @@ function showLogin() {
     mainContainer.style.display = 'none';
     loginPassword.value = '';
     setTimeout(() => loginPassword.focus(), 100);
+    const registerBtn = document.querySelector('.login-wrapper .btn-text');
+    if (registerBtn) registerBtn.style.display = allowRegistration ? '' : 'none';
+    const loginTitle = document.querySelector('.login-container h1');
+    if (loginTitle) loginTitle.textContent = siteName;
+    document.title = siteName;
 }
 
 function showRegisterModal() { document.getElementById('register-modal').classList.add('show'); }
@@ -165,6 +182,20 @@ function showMain() {
     document.getElementById('user-id').textContent = isAdmin ? '管理员' : '用户';
     const adminNavItem = document.getElementById('admin-nav-item');
     if (adminNavItem) adminNavItem.style.display = isAdmin ? 'block' : 'none';
+    // 应用站点名称
+    document.querySelectorAll('.logo span').forEach(el => el.textContent = siteName);
+    document.title = siteName + (isAdmin ? ' - 管理后台' : '');
+    const loginTitle = document.querySelector('.login-container h1');
+    if (loginTitle) loginTitle.textContent = siteName;
+    // 公共空间可见性
+    const publicNav = document.querySelector('[data-view="public"]');
+    if (publicNav) {
+        const li = publicNav.closest('li');
+        if (li) li.style.display = enablePublicArea ? '' : 'none';
+    }
+    // 登录页注册按钮
+    const registerBtn = document.querySelector('.login-wrapper .btn-text');
+    if (registerBtn) registerBtn.style.display = allowRegistration ? '' : 'none';
 }
 
 async function handleLogout() {
@@ -354,10 +385,13 @@ function initFileInput() {
     fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) uploadFiles(e.target.files, false); });
 }
 
-function uploadToPublic() { fileInput.click(); fileInput.dataset.isPublic = 'true'; }
+function uploadToPublic() {
+    if (!enablePublicArea) { showToast('公共空间已关闭', true); return; }
+    fileInput.click(); fileInput.dataset.isPublic = 'true';
+}
 
-const CHUNK_SIZE = 20 * 1024 * 1024;
-const NO_CHUNK_THRESHOLD = 80 * 1024 * 1024;
+let CHUNK_SIZE = 20 * 1024 * 1024;
+let NO_CHUNK_THRESHOLD = 80 * 1024 * 1024;
 let currentXhr = null;
 let currentChunkUpload = null;
 
@@ -368,7 +402,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
     let uploadedBytes = 0;
     const { onProgress, onSpeed } = progressCallbacks;
     const startTime = Date.now();
-    const CONCURRENCY = 20;
+    const CONCURRENCY = 4;
 
     const state = { cancelled: false };
     currentChunkUpload = state;
@@ -413,7 +447,7 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
                 const pct = Math.min((uploadedBytes / totalBytes) * 100, 100);
                 onProgress(pct, uploadedBytes, totalBytes);
                 const elapsed = (Date.now() - startTime) / 1000;
-                if (elapsed > 0) onSpeed(formatFileSize(uploadedBytes / elapsed) + '/s');
+                if (elapsed > 0) onSpeed(formatFileSize(uploadedBytes / elapsed) + '/s', uploadedBytes, totalBytes, totalChunks);
                 return;
             } catch (e) {
                 if (state.cancelled) return;
@@ -583,10 +617,16 @@ function uploadFiles(fileList, isPublic = false) {
                         progressSpeed.textContent = '准备分片...';
                         const data = await uploadFileInChunks(file, isPublic, {
                             onProgress: (pct, loaded, total) => {
-                                // 用已上传总量计算整体百分比，不用当前文件的百分比
                                 updateProgress(completedSize + loaded, totalSize);
                             },
-                            onSpeed: (speed) => { progressSpeed.textContent = speed; }
+                            onSpeed: (speed, loaded, total, totalChunks) => {
+                                if (loaded !== undefined && totalChunks !== undefined) {
+                                    const done = Math.min(Math.floor(loaded / CHUNK_SIZE), totalChunks);
+                                    progressSpeed.textContent = speed + ` (分片 ${done}/${totalChunks})`;
+                                } else {
+                                    progressSpeed.textContent = speed;
+                                }
+                            }
                         });
                         if (data === null) {
                             // 已取消
@@ -1235,6 +1275,7 @@ function closePreviewModal() { document.getElementById('preview-modal').classLis
 
 // ========== 分享 ==========
 function shareFile(filename, userDir = null) {
+    if (!enableShare) { showToast('分享功能已关闭', true); return; }
     document.getElementById('share-file-name').value = filename;
     document.getElementById('share-user-dir').value = userDir || '';
     document.getElementById('share-url').value = '';

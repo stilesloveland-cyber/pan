@@ -185,6 +185,110 @@
                             </div>
                         </div>
                     </div>
+                    <div class="card">
+                        <h3>注册与登录</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label><input type="checkbox" id="s-allow_registration" style="width:auto;margin-right:6px"> 允许新用户注册</label>
+                                <div class="hint">关闭后用户只能登录，无法注册新账号</div>
+                            </div>
+                            <div class="form-group">
+                                <label>每 IP 最大登录尝试次数</label>
+                                <input type="number" id="s-max_login_attempts" min="1" max="100">
+                                <div class="hint">超过此次数将临时封禁，0 表示不限制</div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>登录封禁时长（分钟）</label>
+                                <input type="number" id="s-login_ban_minutes" min="1" max="1440">
+                                <div class="hint">达到最大尝试次数后的封禁时间</div>
+                            </div>
+                            <div class="form-group"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>文件管理</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label><input type="checkbox" id="s-auto_rename" style="width:auto;margin-right:6px"> 自动重命名同名文件</label>
+                                <div class="hint">开启后上传同名文件会自动添加数字后缀</div>
+                            </div>
+                            <div class="form-group">
+                                <label>回收站保留天数</label>
+                                <input type="number" id="s-recycle_bin_days" min="0" max="365">
+                                <div class="hint">删除的文件保留天数，0 表示立即删除</div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>默认排序方式</label>
+                                <select id="s-default_sort">
+                                    <option value="date-desc">日期 新→旧</option>
+                                    <option value="date-asc">日期 旧→新</option>
+                                    <option value="name-asc">名称 A→Z</option>
+                                    <option value="name-desc">名称 Z→A</option>
+                                    <option value="size-desc">大小 大→小</option>
+                                    <option value="size-asc">大小 小→大</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>每页文件数</label>
+                                <input type="number" id="s-per_page_count" min="10" max="500">
+                                <div class="hint">文件列表每页显示的文件数量</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>预览与分享</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label><input type="checkbox" id="s-enable_share" style="width:auto;margin-right:6px"> 启用文件分享</label>
+                                <div class="hint">关闭后分享功能不可用</div>
+                            </div>
+                            <div class="form-group">
+                                <label>分享链接最长有效期（天）</label>
+                                <input type="number" id="s-max_share_expiry_days" min="1" max="365">
+                                <div class="hint">分享链接可设置的最大有效天数</div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>最大预览文件大小</label>
+                                <div class="size-input-group">
+                                    <input type="number" id="s-max_preview_size" min="1" step="1">
+                                    <select id="u-max_preview_size"><option value="MB" selected>MB</option><option value="GB">GB</option></select>
+                                </div>
+                                <div class="hint">超过此大小的文件不允许在线预览，建议 ≤ 200MB</div>
+                            </div>
+                            <div class="form-group"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>系统运维</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>站点名称</label>
+                                <input type="text" id="s-site_name" maxlength="50">
+                                <div class="hint">显示在页面标题和侧边栏的名称</div>
+                            </div>
+                            <div class="form-group">
+                                <label><input type="checkbox" id="s-enable_public_area" style="width:auto;margin-right:6px"> 启用公共空间</label>
+                                <div class="hint">关闭后侧边栏隐藏公共空间入口，禁止上传到公共空间</div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label><input type="checkbox" id="s-maintenance_mode" style="width:auto;margin-right:6px"> 维护模式</label>
+                                <div class="hint">开启后仅管理员可访问，其他用户显示维护提示</div>
+                            </div>
+                            <div class="form-group">
+                                <label>每用户最大并发下载数</label>
+                                <input type="number" id="s-max_concurrent_downloads" min="1" max="50">
+                                <div class="hint">同一用户同时下载的最大文件数</div>
+                            </div>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存设置</button>
                 </form>
             </div>
@@ -304,7 +408,7 @@
 
             document.getElementById('hint-max-total').textContent = '最大允许: ' + formatBytes(data.max_allowed_total);
 
-            const sizeFields = ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size'];
+            const sizeFields = ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size','max_preview_size'];
             sizeFields.forEach(f => {
                 const el = document.getElementById('s-' + f);
                 const uEl = document.getElementById('u-' + f);
@@ -314,27 +418,53 @@
                     uEl.value = unit;
                 }
             });
-            const otherIntFields = ['max_files_per_upload','session_lifetime','cache_ttl','thumb_width','thumb_height'];
+            const otherIntFields = ['max_files_per_upload','session_lifetime','cache_ttl','thumb_width','thumb_height','max_login_attempts','login_ban_minutes','recycle_bin_days','per_page_count','max_concurrent_downloads'];
             otherIntFields.forEach(f => {
                 const el = document.getElementById('s-' + f);
                 if (el) el.value = data.settings[f];
             });
 
+            const boolFields = ['allow_registration','auto_rename','enable_share','maintenance_mode','enable_public_area'];
+            boolFields.forEach(f => {
+                const el = document.getElementById('s-' + f);
+                if (el) el.checked = !!data.settings[f];
+            });
+
+            const stringFields = ['site_name','default_sort','default_sort_order'];
+            stringFields.forEach(f => {
+                const el = document.getElementById('s-' + f);
+                if (el) el.value = data.settings[f] || '';
+            });
+
             renderExtensions();
+            // 应用站点名称到页面标题
+            if (data.settings.site_name) {
+                document.title = data.settings.site_name + ' - 管理后台';
+            }
         });
     }
 
     document.getElementById('settings-form').addEventListener('submit', e => {
         e.preventDefault();
         const data = {};
-        const sizeFields = ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size'];
+        const sizeFields = ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size','max_preview_size'];
         sizeFields.forEach(f => {
             const val = parseFloat(document.getElementById('s-' + f).value) || 0;
             const unit = document.getElementById('u-' + f).value;
             data[f] = Math.round(unitToBytes(val, unit));
         });
-        const otherIntFields = ['max_files_per_upload','session_lifetime','cache_ttl','thumb_width','thumb_height'];
+        const otherIntFields = ['max_files_per_upload','session_lifetime','cache_ttl','thumb_width','thumb_height','max_login_attempts','login_ban_minutes','recycle_bin_days','per_page_count','max_concurrent_downloads'];
         otherIntFields.forEach(f => { data[f] = parseInt(document.getElementById('s-' + f).value) || 0; });
+
+        const boolFields = ['allow_registration','auto_rename','enable_share','maintenance_mode','enable_public_area'];
+        boolFields.forEach(f => { data[f] = document.getElementById('s-' + f).checked; });
+
+        const stringFields = ['site_name','default_sort','default_sort_order'];
+        stringFields.forEach(f => {
+            const el = document.getElementById('s-' + f);
+            data[f] = el ? el.value : '';
+        });
+
         data.blocked_extensions = currentExtensions;
 
         fetch('admin.php?action=save_settings', {
@@ -347,7 +477,7 @@
         });
     });
 
-    ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size'].forEach(f => {
+    ['max_total_size','max_user_size','max_public_size','max_file_size','chunk_size','max_preview_size'].forEach(f => {
         const uEl = document.getElementById('u-' + f);
         const sEl = document.getElementById('s-' + f);
         if (uEl && sEl) {

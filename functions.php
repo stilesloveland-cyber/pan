@@ -57,6 +57,26 @@ function initSystem() {
         global $DEFAULT_SETTINGS;
         file_put_contents(SETTINGS_FILE, json_encode($DEFAULT_SETTINGS, JSON_PRETTY_PRINT), LOCK_EX);
     }
+
+    // 维护模式检查
+    if (MAINTENANCE_MODE && !isCurrentUserAdmin()) {
+        // 允许 ping 和 login 请求通过
+        $action = isset($_POST['action']) ? $_POST['action'] : (isset($_GET['action']) ? $_GET['action'] : '');
+        if (!in_array($action, ['ping', 'login'])) {
+            http_response_code(503);
+            $isJson = (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
+                   || (isset($_SERVER['SCRIPT_FILENAME']) && strpos($_SERVER['SCRIPT_FILENAME'], 'upload.php') !== false)
+                   || (isset($_SERVER['SCRIPT_FILENAME']) && strpos($_SERVER['SCRIPT_FILENAME'], 'files.php') !== false)
+                   || (isset($_SERVER['SCRIPT_FILENAME']) && strpos($_SERVER['SCRIPT_FILENAME'], 'admin.php') !== false)
+                   || (isset($_SERVER['SCRIPT_FILENAME']) && strpos($_SERVER['SCRIPT_FILENAME'], 'share.php') !== false)
+                   || (isset($_SERVER['SCRIPT_FILENAME']) && strpos($_SERVER['SCRIPT_FILENAME'], 'download.php') !== false);
+            if ($isJson) {
+                header('Content-Type: application/json; charset=utf-8');
+                die(json_encode(['success' => false, 'message' => '系统维护中，请稍后再试']));
+            }
+            die('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>维护中</title><style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f5f5f5}.box{text-align:center;padding:40px}.box i{font-size:64px;color:#f39c12;margin-bottom:20px;display:block}h1{color:#333}p{color:#666}</style></head><body><div class="box"><i class="fas fa-tools"></i><h1>系统维护中</h1><p>系统正在维护升级，请稍后再试</p></div></body></html>');
+        }
+    }
 }
 
 // ========== 用户认证（会话优先，兼容密码参数） ==========

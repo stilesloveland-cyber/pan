@@ -20,6 +20,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'logout') {
 
 // ========== 注册 ==========
 if (isset($_POST['action']) && $_POST['action'] === 'register') {
+    if (!ALLOW_REGISTRATION) {
+        echo json_encode(['success' => false, 'message' => '系统已关闭注册']);
+        exit;
+    }
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     if (empty($password)) {
         echo json_encode(['success' => false, 'message' => '请输入密码']);
