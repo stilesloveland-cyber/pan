@@ -234,7 +234,7 @@
 
     <script>
     (function checkAdminAuth() {
-        fetch('files.php', { cache: 'no-store' }).then(r => r.json()).then(d => {
+        fetch('files.php', { cache: 'no-store', credentials: 'same-origin' }).then(r => r.json()).then(d => {
             if (!d.success || !d.admin) window.location.href = 'index.html';
         }).catch(() => { window.location.href = 'index.html'; });
     })();
