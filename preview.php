@@ -75,7 +75,11 @@ $fileExt = strtolower(pathinfo($realFilePath, PATHINFO_EXTENSION));
 $fileSize = filesize($realFilePath);
 
 // 检查文件大小是否超过预览限制
-if ($fileSize > MAX_PREVIEW_SIZE) {
+$previewSizeLimit = MAX_PREVIEW_SIZE;
+if ($previewSizeLimit <= 0) {
+    $previewSizeLimit = 100 * 1024 * 1024;
+}
+if ($fileSize > $previewSizeLimit) {
     $imageExts = ['jpg','jpeg','png','gif','webp','bmp','svg'];
     $videoExts = ['mp4','webm','avi','mov'];
     $audioExts = ['mp3','wav','flac','ogg','aac'];
@@ -84,7 +88,7 @@ if ($fileSize > MAX_PREVIEW_SIZE) {
 
     if (in_array($fileExt, $previewExts)) {
         $sizeMB = round($fileSize / 1024 / 1024, 1);
-        $previewLimitMB = round(MAX_PREVIEW_SIZE / 1024 / 1024, 1);
+        $previewLimitMB = round($previewSizeLimit / 1024 / 1024, 1);
         header('Content-Type: text/html; charset=utf-8');
         die("<div style='text-align:center;padding:60px 20px;font-family:sans-serif;color:#666'>
             <i class='fas fa-file' style='font-size:56px;margin-bottom:16px;color:#ccc;display:block'></i>

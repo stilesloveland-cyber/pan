@@ -407,6 +407,10 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
     const state = { cancelled: false };
     currentChunkUpload = state;
 
+    // 立即更新状态，替换"准备分片..."文本
+    onProgress(0, 0, totalBytes);
+    onSpeed('0 B/s', 0, totalBytes, totalChunks);
+
     async function uploadSingleChunk(index) {
         if (state.cancelled) return;
         const start = index * CHUNK_SIZE;
@@ -430,6 +434,17 @@ async function uploadFileInChunks(file, isPublic, progressCallbacks) {
                 await new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
                     currentXhr = xhr;
+                    xhr.upload.onprogress = function(e) {
+                        if (e.lengthComputable) {
+                            const currentProgress = uploadedBytes + e.loaded;
+                            const pct = Math.min((currentProgress / totalBytes) * 100, 100);
+                            onProgress(pct, currentProgress, totalBytes);
+                            const elapsed = (Date.now() - startTime) / 1000;
+                            if (elapsed > 0) {
+                                onSpeed(formatFileSize(currentProgress / elapsed) + '/s', currentProgress, totalBytes, totalChunks);
+                            }
+                        }
+                    };
                     xhr.onload = function () {
                         try {
                             const data = JSON.parse(xhr.responseText);
