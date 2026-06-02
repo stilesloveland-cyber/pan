@@ -91,14 +91,14 @@
 ```bash
 git clone https://github.com/stilesloveland-cyber/pan.git
 cd pan
-docker-compose up -d
+docker compose up -d
 ```
 
 #### 从本地部署
 
 ```bash
 cd 项目目录
-docker-compose up -d
+docker compose up -d
 ```
 
 部署完成后：
