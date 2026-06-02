@@ -13,16 +13,8 @@ chmod -R 775 /var/www/uploads
 chown -R www-data:www-data /var/www/html/pan
 chmod -R 755 /var/www/html/pan
 
-if [ ! -f /var/www/uploads/users.json ]; then
-    echo 'Creating initial users.json - will be populated by initSystem()'
-    echo '{}' > /var/www/uploads/users.json
-    chown www-data:www-data /var/www/uploads/users.json
-fi
-
-if [ ! -f /var/www/uploads/settings.json ]; then
-    echo '{}' > /var/www/uploads/settings.json
-    chown www-data:www-data /var/www/uploads/settings.json
-fi
+# 由 PHP 的 initSystem() 自动创建 users.json（含默认 admin 用户）
+# 和 settings.json（含默认配置），此处无需预创建
 
 mkdir -p /run/nginx
 
