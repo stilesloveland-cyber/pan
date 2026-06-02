@@ -7,18 +7,11 @@ require_once __DIR__ . '/config.php';
 
 // ========== 会话管理 ==========
 function initSystem() {
-    // HTTP 重定向到 HTTPS（生产环境）
-    if (isset($_SERVER['HTTP_HOST']) && 
-        isset($_SERVER['REQUEST_URI']) && 
-        !isset($_SERVER['HTTPS']) && 
-        $_SERVER['HTTP_HOST'] !== 'localhost' &&
-        strpos($_SERVER['HTTP_HOST'], '127.0.0.1') === false &&
-        strpos($_SERVER['HTTP_HOST'], ':') === false) {
-        $redirectUrl = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-        $statusCode = ($_SERVER['REQUEST_METHOD'] === 'POST') ? '307 Temporary Redirect' : '301 Moved Permanently';
-        header("HTTP/1.1 $statusCode");
-        header('Location: ' . $redirectUrl);
-        exit;
+    // 如果使用了 Cloudflare（检测到 CF-Ray 头），直接信任 Cloudflare 的协议
+    // Cloudflare 已处理 SSL 终止，无需 PHP 层重定向
+    $isBehindCloudflare = isset($_SERVER['HTTP_CF_RAY']);
+    if ($isBehindCloudflare && isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+        $_SERVER['HTTPS'] = ($_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 'on' : 'off';
     }
 
     // 启动会话（安全配置）
